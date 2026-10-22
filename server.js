@@ -84,15 +84,26 @@ function walkFind(o,keys,depth=0){if(!o||typeof o!=='object'||depth>5)return nul
 function normalize(d){
  const pool=d.pool||{};const wallet=d.wallet||{};const collective=first(pool,['pool_statistics.collective','collective'])||{};const network=first(pool,['network_statistics','network'])||{};const market=first(pool,['market'])||{};
  const minerStats=first(wallet,['stats','wallet','data'])||wallet;
- const hashrate=walkFind(minerStats,['hashRate','hashrate','hash_rate','avgHashrate','hashRate_1h']);
- const balance=walkFind(minerStats,['amtDue','amountDue','amount_due','pendingBalance','pending_balance','unpaidBalance','unpaid_balance','balance','pending','unpaid','due','totalDue','total_due']);
- const paid=walkFind(minerStats,['amtPaid','amountPaid','amount_paid','totalPaid','total_paid','paid','paidAmount']);
- const threshold=walkFind(minerStats,['payoutThreshold','payout_threshold','minPayout','minimumPayout','paymentThreshold','payment_threshold','threshold','thold']);
- const accepted=walkFind(minerStats,['validShares','accepted','sharesAccepted','valid_shares']);
- const rejected=walkFind(minerStats,['invalidShares','rejected','sharesRejected','invalid_shares']);
- const workerList=walkFind(minerStats,['workers','workerStats','worker_stats']);
+ const revenue=first(wallet,['revenue'])||first(minerStats,['revenue'])||{};
+ const collectiveWallet=first(wallet,['collective'])||{};
+ const hashrate=first(collectiveWallet,['hashRate','avg1hashRate'])??walkFind(minerStats,['hashRate','hashrate','hash_rate','avgHashrate','hashRate_1h']);
+ const confirmedBalance=first(revenue,['confirmedBalance','confirmed_balance']);
+ const unconfirmedObj=first(revenue,['unconfirmedBalance','unconfirmed_balance']);
+ const unconfirmedCollective=first(unconfirmedObj||{},['collective.total','collective']);
+ const unconfirmedSolo=first(unconfirmedObj||{},['solo.total','solo']);
+ const rawUnconfirmed=(typeof unconfirmedCollective==='object'&&unconfirmedCollective!==null?first(unconfirmedCollective,['total']):unconfirmedCollective);
+ const rawSolo=(typeof unconfirmedSolo==='object'&&unconfirmedSolo!==null?first(unconfirmedSolo,['total']):unconfirmedSolo);
+ const rawBalance=(confirmedBalance!=null||rawUnconfirmed!=null||rawSolo!=null)
+   ? Number(confirmedBalance||0)+Number(rawUnconfirmed||0)+Number(rawSolo||0)
+   : walkFind(minerStats,['amtDue','amountDue','amount_due','pendingBalance','pending_balance','unpaidBalance','unpaid_balance','balance','pending','unpaid','due','totalDue','total_due']);
+ const balance=rawBalance;
+ const paid=first(revenue,['totalPaid','total_paid','amtPaid','amountPaid','amount_paid'])??walkFind(minerStats,['amtPaid','amountPaid','amount_paid','totalPaid','total_paid','paid','paidAmount']);
+ const threshold=first(revenue,['payoutThreshold','payout_threshold'])??walkFind(minerStats,['payoutThreshold','payout_threshold','minPayout','minimumPayout','paymentThreshold','payment_threshold','threshold','thold']);
+ const accepted=first(collectiveWallet,['validShares'])??walkFind(minerStats,['validShares','accepted','sharesAccepted','valid_shares']);
+ const rejected=first(collectiveWallet,['invalidShares'])??walkFind(minerStats,['invalidShares','rejected','sharesRejected','invalid_shares']);
+ const workerList=first(wallet,['collectiveWorkers','collective_workers'])??walkFind(minerStats,['workers','workerStats','worker_stats']);
  const workerArray=Array.isArray(workerList)?workerList:[];
- const lastShare=walkFind(minerStats,['lastShare','last_share','lastShareTime']);
+ const lastShare=first(collectiveWallet,['lastShare','last_share'])??walkFind(minerStats,['lastShare','last_share','lastShareTime']);
  const walletBlocks=walkFind(minerStats,['blocksFound','blocks_found','totalBlocksFound']);
  const rewardAtomic=first(pool,['network_statistics.value','network.value','pool_statistics.general.last10blocksAvgReward']);
  const difficulty=first(pool,['network_statistics.difficulty','network.difficulty']);
