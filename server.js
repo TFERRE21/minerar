@@ -136,7 +136,7 @@ function render(d){
  set('netbrl',netUSD==null?'—':fmtBRL(netUSD*(fx||0)));
  set('fxnote',fx>0?'Conversão indicativa: US$ 1 = R$ '+fmtNum(fx,4)+'. Ajuste o custo mensal da VPS acima.':'Cotação USD/BRL indisponível; lucro líquido em R$ não pode ser calculado ainda.');
  const b=n.latest&&n.latest.height?[{height:n.latest.height,type:n.latest.poolType||'pool',value:n.latest.value||n.latest.reward||null,ts:n.latest.ts,valid:n.latest.valid,hash:n.latest.hash}]:[];
- set('blockrows',b.length?b.map(x=>'<tr><td>#'+x.height+'</td><td>'+String(x.type).toUpperCase()+'</td><td>'+fmtXMR(x.value==null?null:Number(x.value)/1e12)+'</td><td>'+safeDate(x.ts)+'</td><td class="'+(x.valid?'good':'bad')+'">'+(x.valid?'Válido':x.valid===false?'Inválido':'—')+'</td></tr>').join(''):'<tr><td colspan="5">A API não retornou bloco recente.</td></tr>');
+ document.getElementById('blockrows').innerHTML=b.length?b.map(x=>'<tr><td>#'+String(x.height)+'</td><td>'+String(x.type||'pool').toUpperCase()+'</td><td>'+fmtXMR(x.value==null?null:Number(x.value)/1e12)+'</td><td>'+safeDate(x.ts)+'</td><td class="'+(x.valid?'good':'bad')+'">'+(x.valid?'Válido':x.valid===false?'Inválido':'—')+'</td></tr>').join(''):'<tr><td colspan="5">A API não retornou bloco recente.</td></tr>';
 }
 async function refresh(){set('status','Atualizando…');try{const r=await fetch('/api/mining',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'HTTP '+r.status);render(d)}catch(e){set('status','Falha: '+e.message)}}
 document.getElementById('refresh').addEventListener('click',refresh);
