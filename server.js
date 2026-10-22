@@ -36,7 +36,8 @@ footer{margin-top:24px;color:#8293ad;font-size:11px;line-height:1.7}.refresh{bac
 <div class="intro"><div><h2>Visão geral da mineração</h2><p>Hashrate, shares, saldo, blocos da pool e estimativa financeira em um só lugar.</p></div><div><div class="updated">Atualizado: <span id="updated">carregando…</span></div><button class="refresh" id="refresh" style="margin-top:9px">↻ Atualizar agora</button></div></div>
 <div class="grid">
 <div class="card"><div class="label"><span class="dot"></span>Hashrate da sua carteira</div><div class="value" id="hashrate">—</div><div class="hint" id="workerhint">Calculado pela pool, quando disponível</div></div>
-<div class="card"><div class="label">Saldo pendente</div><div class="value" id="balance">—</div><div class="hint" id="balanceusd">Aguardando dados da carteira</div></div>
+<div class="card"><div class="label">Saldo acumulado no pool</div><div class="value" id="balance">—</div><div class="hint" id="balanceusd">Valor ainda não confirmado pela API</div></div>
+<div class="card"><div class="label">Falta para atingir o saque</div><div class="value" id="toPayout">—</div><div class="hint" id="thresholdHint">Limite de pagamento da carteira</div></div>
 <div class="card"><div class="label">Total pago</div><div class="value" id="paid">—</div><div class="hint">Pagamentos informados pela pool</div></div>
 <div class="card"><div class="label">Preço do XMR</div><div class="value" id="price">—</div><div class="hint" id="pricehint">Cotação fornecida pela API da pool</div></div>
 </div>
@@ -66,7 +67,7 @@ footer{margin-top:24px;color:#8293ad;font-size:11px;line-height:1.7}.refresh{bac
 <div class="statrow"><span>Endereço configurado</span><strong class="mono" id="wallet">—</strong></div>
 </div></div>
 <div class="section"><div class="sectionhead"><h3>Blocos recentes da pool</h3></div><p style="margin-bottom:12px">São blocos encontrados pela pool inteira, não necessariamente pelo seu minerador. A API pública pode disponibilizar somente o bloco mais recente.</p><div class="tablewrap"><table><thead><tr><th>Altura</th><th>Tipo</th><th>Recompensa</th><th>Encontrado em</th><th>Validade</th></tr></thead><tbody id="blockrows"><tr><td colspan="5">Carregando dados da pool…</td></tr></tbody></table></div></div>
-<div class="notice"><strong>Importante:</strong> lucro é uma estimativa, não uma garantia. Não confunda os blocos encontrados pela pool com blocos encontrados pela sua VPS. A API da pool informa saldo e pagamentos; o painel não consegue confirmar pagamentos na carteira local nem ler logs internos do XMRig dentro do host. Para monitoramento do processo em tempo real será necessário um endpoint local protegido no servidor.</div>
+<div class="notice"><strong>Importante:</strong> lucro é uma estimativa, não uma garantia. Não confunda os blocos encontrados pela pool com blocos encontrados pela sua VPS. O saldo acumulado e o limite de saque dependem dos campos que a API pública retornar; quando o limite não estiver disponível, confira-o no painel oficial da HashVault. A API da pool informa pagamentos, mas o painel não consegue confirmar pagamentos na carteira local nem ler logs internos do XMRig dentro do host. Para monitoramento do processo em tempo real será necessário um endpoint local protegido no servidor.</div>
 <footer>Minerar XMR · Atualização automática a cada 60 segundos · Fontes: API pública HashVault. Nenhuma chave privada é solicitada ou armazenada. A estimativa de receita não substitui o histórico de pagamentos.</footer>
 </main>
 <script>
@@ -86,6 +87,7 @@ function normalize(d){
  const hashrate=walkFind(minerStats,['hashRate','hashrate','hash_rate','avgHashrate','hashRate_1h']);
  const balance=walkFind(minerStats,['balance','amtDue','amountDue','pendingBalance','pending','unpaid']);
  const paid=walkFind(minerStats,['paid','amtPaid','amountPaid','totalPaid']);
+ const threshold=walkFind(minerStats,['threshold','thold','payoutThreshold','payout_threshold','minPayout','minimumPayout','paymentThreshold']);
  const accepted=walkFind(minerStats,['validShares','accepted','sharesAccepted','valid_shares']);
  const rejected=walkFind(minerStats,['invalidShares','rejected','sharesRejected','invalid_shares']);
  const workerList=walkFind(minerStats,['workers','workerStats','worker_stats']);
@@ -101,7 +103,7 @@ function normalize(d){
  const totalBlocks=first(collective,['totalBlocksFound','total_blocks_found']);
  const poolRate=first(collective,['hashRate','hashrate']);
  const xmr=v=>v==null?null:Number(v)/1e12;
- return {hashrate:hashrate==null?null:Number(hashrate),balance:xmr(balance),paid:xmr(paid),accepted:accepted==null?null:Number(accepted),rejected:rejected==null?null:Number(rejected),workers:workerArray.length||walkFind(minerStats,['workerCount','workersCount']),lastShare, walletBlocks, totalBlocks, latest, reward:xmr(rewardAtomic),difficulty,height,networkRate,price:price==null?null:Number(price),walletStats:minerStats,network,poolRate};
+ return {hashrate:hashrate==null?null:Number(hashrate),balance:xmr(balance),paid:xmr(paid),threshold:xmr(threshold),accepted:accepted==null?null:Number(accepted),rejected:rejected==null?null:Number(rejected),workers:workerArray.length||walkFind(minerStats,['workerCount','workersCount']),lastShare, walletBlocks, totalBlocks, latest, reward:xmr(rewardAtomic),difficulty,height,networkRate,price:price==null?null:Number(price),walletStats:minerStats,network,poolRate};
 }
 function render(d){
  lastData=d;const n=normalize(d);const brlRate=Number(d.brlRate||0);const rate=n.hashrate;
@@ -109,7 +111,9 @@ function render(d){
  set('hashrate',rate==null?'Aguardando':(rate>=1e6?fmtNum(rate/1e6,2)+' MH/s':rate>=1000?fmtNum(rate/1000,2)+' kH/s':fmtNum(rate,1)+' H/s'));
  set('workerhint',n.workers!=null?'Workers informados pela pool: '+n.workers:'Hashrate informado pela API da carteira');
  set('balance',n.balance==null?'Indisponível':fmtXMR(n.balance));
- set('balanceusd',n.balance==null?'A API ainda não retornou saldo':fmtUSD(n.balance*n.price));
+ set('balanceusd',n.balance==null?'A API ainda não retornou saldo':(n.price==null?'Valor acumulado informado pela pool':fmtUSD(n.balance*n.price)+' estimados'));
+ set('toPayout',n.balance==null||n.threshold==null?'Indisponível':fmtXMR(Math.max(0,n.threshold-n.balance)));
+ set('thresholdHint',n.threshold==null?'Limite de saque não informado pela API pública; confira a configuração no HashVault':('Limite de saque: '+fmtXMR(n.threshold)+(n.balance>=n.threshold?' · limite atingido':' · saldo acumulando')));
  set('paid',n.paid==null?'Indisponível':fmtXMR(n.paid));
  set('price',n.price==null?'—':fmtUSD(n.price));
  set('accepted',n.accepted==null?'—':fmtNum(n.accepted,0));
