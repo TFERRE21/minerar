@@ -8,7 +8,7 @@ const POOL_API = "https://api.hashvault.pro/v3/monero";
 let snapshot = { updatedAt: null, pool: null, wallet: null, error: null };
 let refreshing = false;
 
-const page = \`<!doctype html>
+const page = `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -143,7 +143,7 @@ document.getElementById('refresh').addEventListener('click',refresh);
 document.getElementById('vpscost').value=localStorage.getItem('xmr-vps-cost')||'';
 document.getElementById('vpscost').addEventListener('input',e=>{localStorage.setItem('xmr-vps-cost',e.target.value);if(lastData)render(lastData)});
 refresh();setInterval(refresh,60000);
-</script></body></html>\`;
+</script></body></html>`;
 
 async function jsonFetch(url) {
   const response = await fetch(url, { headers: { accept: "application/json", "user-agent": "MinerarXMR-Dashboard/1.0" }, signal: AbortSignal.timeout(12000) });
