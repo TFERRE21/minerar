@@ -1,0 +1,1 @@
+"""Crypto Scout market monitoring package."""
