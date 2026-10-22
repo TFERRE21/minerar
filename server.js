@@ -1,86 +1,191 @@
 const http = require("node:http");
 
 const PORT = Number(process.env.PORT || 3000);
-const REFRESH_MS = Math.max(60, Number(process.env.REFRESH_SECONDS || 900)) * 1000;
-const MAX_MARKET_CAP = Number(process.env.MAX_MARKET_CAP_USD || 50000000);
-const MIN_VOLUME = Number(process.env.MIN_VOLUME_USD || 10000);
+const REFRESH_MS = Math.max(60, Number(process.env.REFRESH_SECONDS || 120)) * 1000;
+const WALLET = process.env.XMR_WALLET || "43LujcJuTVrSYVjE9nR3s7L1ZukpLkFTGQogWtf54cT6eKx7nVKbh6ecejUNByFYgNFdMLhfkHd5Kjk6SVLS4hqf4aGU6xB";
+const POOL_API = "https://api.hashvault.pro/v3/monero";
 
-let coins = [];
-let updatedAt = null;
-let lastError = null;
+let snapshot = { updatedAt: null, pool: null, wallet: null, error: null };
 let refreshing = false;
 
-const page = `<!doctype html>
+const page = \`<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b1020"><title>Crypto Scout | Monitor cripto</title>
+<meta name="theme-color" content="#080d18">
+<title>Minerar XMR | Painel de mineração</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8eefc;font:15px Arial,sans-serif}
-header{padding:28px max(20px,calc((100% - 1150px)/2));background:#111a30;border-bottom:1px solid #263452}
-h1{margin:0;font-size:28px}header p,.muted{color:#9eafd0;line-height:1.6}
-main{max-width:1150px;margin:auto;padding:24px 18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-.card{background:#141f36;border:1px solid #293957;border-radius:14px;padding:20px}.label{color:#9eafd0;font-size:13px}
-.value{font-size:25px;font-weight:bold;margin-top:10px;overflow-wrap:anywhere}h2{font-size:19px;margin:28px 0 14px}
-.status{display:inline-block;color:#78e0b1;background:#173d36;padding:6px 10px;border-radius:30px;font-size:12px}
-.tablewrap{overflow-x:auto;background:#141f36;border:1px solid #293957;border-radius:12px}table{border-collapse:collapse;width:100%;min-width:720px}
-th,td{text-align:left;padding:13px;border-bottom:1px solid #293957}th{color:#9eafd0;font-size:12px;text-transform:uppercase}
-footer{color:#8294b7;font-size:12px;padding:25px 0}.up{color:#78e0b1}.down{color:#ff8e9a}
+:root{color-scheme:dark;--bg:#080d18;--panel:#111a2b;--panel2:#0d1525;--border:#26344c;--muted:#9aabc5;--text:#edf4ff;--green:#4de0ad;--red:#ff8795;--blue:#7eb8ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#172949 0,transparent 40%),var(--bg);color:var(--text);font:15px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+header{border-bottom:1px solid var(--border);background:#0a1120d9;position:sticky;top:0;z-index:2;backdrop-filter:blur(12px)}
+.top{max-width:1240px;margin:auto;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#ff9c35,#f15c32);font-size:23px;color:#111;font-weight:900}
+h1{font-size:20px;margin:0;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px;margin-top:4px}.pill{border:1px solid #28654f;color:var(--green);background:#102b27;border-radius:99px;padding:7px 11px;font-size:12px;white-space:nowrap}
+main{max-width:1240px;margin:auto;padding:24px 22px 40px}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}.intro h2{font-size:27px;margin:0 0 7px}.intro p{margin:0;color:var(--muted);line-height:1.5}.updated{color:var(--muted);font-size:12px;text-align:right}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:linear-gradient(150deg,#141f33,#0f1728);border:1px solid var(--border);border-radius:17px;padding:19px;min-width:0;box-shadow:0 10px 30px #00000012}.label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}.value{font-size:27px;font-weight:750;letter-spacing:-.6px;margin-top:14px;overflow-wrap:anywhere}.unit{font-size:13px;color:var(--muted);font-weight:500;letter-spacing:0}.hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.5}.good{color:var(--green)}.bad{color:var(--red)}.blue{color:var(--blue)}
+.section{margin-top:24px}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.section h3{font-size:17px;margin:0}.section p{color:var(--muted);font-size:13px;margin:6px 0 0;line-height:1.5}
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.wide{background:var(--panel2);border:1px solid var(--border);border-radius:17px;padding:20px;min-width:0}.statrow{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #233049}.statrow:last-child{border-bottom:0}.statrow span:first-child{color:var(--muted)}.statrow strong{text-align:right;overflow-wrap:anywhere}
+input{background:#080f1d;border:1px solid #33435e;border-radius:10px;color:var(--text);padding:11px 12px;width:100%;font:inherit;outline:none}input:focus{border-color:var(--blue)}.costrow{display:grid;grid-template-columns:1fr 150px;gap:12px;align-items:center;margin-top:16px}.small{font-size:12px;color:var(--muted);line-height:1.5}.notice{margin-top:18px;padding:14px 16px;border:1px solid #69542b;background:#241d11;border-radius:12px;color:#f1d9a2;font-size:12px;line-height:1.6}.notice strong{color:#ffe8ae}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px}table{border-collapse:collapse;width:100%;min-width:570px;background:#0d1525}th,td{text-align:left;padding:13px 15px;border-bottom:1px solid #243149;font-size:13px}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}tr:last-child td{border-bottom:0}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+footer{margin-top:24px;color:#8293ad;font-size:11px;line-height:1.7}.refresh{background:#172740;color:var(--text);border:1px solid #344866;padding:9px 12px;border-radius:10px;cursor:pointer}.refresh:hover{background:#203553}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cols{grid-template-columns:1fr}.intro{align-items:flex-start;flex-direction:column}.updated{text-align:left}}
+@media(max-width:520px){.top,main{padding-left:14px;padding-right:14px}.grid{gap:9px}.card{padding:14px;border-radius:13px}.value{font-size:22px}.intro h2{font-size:23px}.costrow{grid-template-columns:1fr}.pill{font-size:11px}.wide{padding:15px}}
 </style></head>
-<body><header><h1>Crypto Scout</h1><p>Monitor de mercado e descoberta de criptomoedas</p></header>
-<main><span class="status">● Monitor de mercado</span>
-<div class="cards" style="margin-top:18px">
-<div class="card"><div class="label">Moedas analisadas</div><div class="value" id="count">—</div></div>
-<div class="card"><div class="label">Candidatas pelos filtros</div><div class="value" id="candidates">—</div></div>
-<div class="card"><div class="label">Última atualização</div><div class="value" style="font-size:17px" id="updated">Carregando…</div></div>
-<div class="card"><div class="label">Modo</div><div class="value" style="font-size:18px">Monitoramento</div></div></div>
-<h2>Moedas acompanhadas</h2><p class="muted">Dados públicos de mercado. Candidatas são apenas moedas que passam pelos filtros de capitalização e volume; isso não significa que sejam mineráveis ou rentáveis.</p>
-<div class="tablewrap"><table><thead><tr><th>Moeda</th><th>Símbolo</th><th>Preço (USD)</th><th>Capitalização</th><th>Volume 24h</th><th>Variação 24h</th></tr></thead><tbody id="rows"><tr><td colspan="6">Carregando dados…</td></tr></tbody></table></div>
-<p class="muted" id="message">Aguardando a primeira consulta de mercado.</p>
-<footer>Crypto Scout · Atualização automática da tela a cada 60 segundos · Não executa mineração nem transações.</footer></main>
+<body>
+<header><div class="top"><div class="brand"><div class="logo">₿</div><div><h1>Minerar XMR</h1><div class="sub">Painel de mineração · Monero / RandomX</div></div></div><div class="pill"><span class="dot"></span> API da pool</div></div></header>
+<main>
+<div class="intro"><div><h2>Visão geral da mineração</h2><p>Hashrate, shares, saldo, blocos da pool e estimativa financeira em um só lugar.</p></div><div><div class="updated">Atualizado: <span id="updated">carregando…</span></div><button class="refresh" id="refresh" style="margin-top:9px">↻ Atualizar agora</button></div></div>
+<div class="grid">
+<div class="card"><div class="label"><span class="dot"></span>Hashrate da sua carteira</div><div class="value" id="hashrate">—</div><div class="hint" id="workerhint">Calculado pela pool, quando disponível</div></div>
+<div class="card"><div class="label">Saldo pendente</div><div class="value" id="balance">—</div><div class="hint" id="balanceusd">Aguardando dados da carteira</div></div>
+<div class="card"><div class="label">Total pago</div><div class="value" id="paid">—</div><div class="hint">Pagamentos informados pela pool</div></div>
+<div class="card"><div class="label">Preço do XMR</div><div class="value" id="price">—</div><div class="hint" id="pricehint">Cotação fornecida pela API da pool</div></div>
+</div>
+<div class="section"><div class="sectionhead"><h3>Produção e atividade</h3></div><div class="grid">
+<div class="card"><div class="label">Shares aceitas</div><div class="value" id="accepted">—</div><div class="hint">Contagem publicada pela pool, se disponível</div></div>
+<div class="card"><div class="label">Shares inválidas / rejeitadas</div><div class="value" id="rejected">—</div><div class="hint">Dados reportados pela pool</div></div>
+<div class="card"><div class="label">Blocos encontrados pela pool</div><div class="value" id="blocks">—</div><div class="hint" id="lastblock">Último bloco da pool</div></div>
+<div class="card"><div class="label">Recompensa do último bloco</div><div class="value" id="reward">—</div><div class="hint">Não significa que o bloco foi encontrado pela sua VPS</div></div>
+</div></div>
+<div class="section cols">
+<div class="wide"><h3>Estimativa de receita</h3><p>Estimativa teórica com hashrate da carteira, dificuldade de rede, recompensa de bloco e preço atual. A recompensa real da pool pode variar.</p>
+<div class="statrow"><span>Receita bruta estimada / dia</span><strong id="grossday">—</strong></div>
+<div class="statrow"><span>Receita bruta estimada / mês</span><strong id="grossmonth">—</strong></div>
+<div class="statrow"><span>Produção estimada / dia</span><strong id="xmrd">—</strong></div>
+<div class="statrow"><span>Lucro estimado / mês</span><strong id="netmonth">Informe o custo da VPS</strong></div>
+<div class="costrow"><div><label for="vpscost">Custo mensal da VPS (R$)</label><div class="small">Salvo apenas neste navegador.</div></div><input id="vpscost" type="number" min="0" step="0.01" placeholder="Ex.: 80,00"></div>
+<div class="statrow"><span>Lucro estimado / mês em R$</span><strong id="netbrl">—</strong></div>
+<div class="small" id="fxnote" style="margin-top:10px">Cotação BRL e dados da rede serão carregados pela API.</div>
+</div>
+<div class="wide"><h3>Estado da carteira e da rede</h3><p>Informações públicas consultadas na HashVault. O painel não controla a mineração e não contém chaves privadas.</p>
+<div class="statrow"><span>Estado dos dados</span><strong id="status">Consultando…</strong></div>
+<div class="statrow"><span>Altura da rede</span><strong id="height">—</strong></div>
+<div class="statrow"><span>Dificuldade da rede</span><strong id="difficulty">—</strong></div>
+<div class="statrow"><span>Hashrate médio da rede</span><strong id="networkhash">—</strong></div>
+<div class="statrow"><span>Última atividade do worker</span><strong id="lastshare">—</strong></div>
+<div class="statrow"><span>Trabalhadores ativos</span><strong id="workers">—</strong></div>
+<div class="statrow"><span>Endereço configurado</span><strong class="mono" id="wallet">—</strong></div>
+</div></div>
+<div class="section"><div class="sectionhead"><h3>Blocos recentes da pool</h3></div><p style="margin-bottom:12px">São blocos encontrados pela pool inteira, não necessariamente pelo seu minerador. A API pública pode disponibilizar somente o bloco mais recente.</p><div class="tablewrap"><table><thead><tr><th>Altura</th><th>Tipo</th><th>Recompensa</th><th>Encontrado em</th><th>Validade</th></tr></thead><tbody id="blockrows"><tr><td colspan="5">Carregando dados da pool…</td></tr></tbody></table></div></div>
+<div class="notice"><strong>Importante:</strong> lucro é uma estimativa, não uma garantia. Não confunda os blocos encontrados pela pool com blocos encontrados pela sua VPS. A API da pool informa saldo e pagamentos; o painel não consegue confirmar pagamentos na carteira local nem ler logs internos do XMRig dentro do host. Para monitoramento do processo em tempo real será necessário um endpoint local protegido no servidor.</div>
+<footer>Minerar XMR · Atualização automática a cada 60 segundos · Fontes: API pública HashVault. Nenhuma chave privada é solicitada ou armazenada. A estimativa de receita não substitui o histórico de pagamentos.</footer>
+</main>
 <script>
-const money=n=>n==null?'—':Number(n).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:Number(n)<1?8:2});
-const compact=n=>n==null?'—':new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:2}).format(n);
-const safe=s=>String(s??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function refresh(){try{const r=await fetch('/api/market',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
-document.getElementById('count').textContent=d.coins.length;
-document.getElementById('candidates').textContent=d.candidates.length;
-document.getElementById('updated').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleString('pt-BR'):'Aguardando';
-document.getElementById('rows').innerHTML=d.coins.map(c=>{const n=c.price_change_percentage_24h;return '<tr><td>'+safe(c.name)+'</td><td>'+safe(String(c.symbol||'').toUpperCase())+'</td><td>'+money(c.current_price)+'</td><td>'+compact(c.market_cap)+'</td><td>'+compact(c.total_volume)+'</td><td class="'+(n>0?'up':n<0?'down':'')+'">'+(n==null?'—':Number(n).toFixed(2)+'%')+'</td></tr>'}).join('')||'<tr><td colspan="6">Nenhuma moeda disponível.</td></tr>';
-document.getElementById('message').textContent=d.error?'Aviso: '+d.error:'Fonte: CoinGecko. Filtros atuais: capitalização até US$ '+compact(d.filters.maxMarketCap)+' e volume mínimo de US$ '+compact(d.filters.minVolume)+'.';
-}catch(e){document.getElementById('message').textContent='Não foi possível atualizar: '+e.message}}
+const fmtNum=(v,d=2)=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:d});
+const fmtXMR=v=>v==null||!Number.isFinite(Number(v))?'—':fmtNum(v,8)+' XMR';
+const fmtUSD=v=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2});
+const fmtBRL=v=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:2});
+const compact=v=>v==null||!Number.isFinite(Number(v))?'—':new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:2}).format(v);
+const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+const first=(obj,paths)=>{for(const p of paths){let v=obj;for(const k of p.split('.'))v=v==null?undefined:v[k];if(v!==undefined&&v!==null)return v}return null};
+const safeDate=v=>{if(!v)return '—';let n=Number(v);const d=new Date(n>1e12?n:n>1e9?n*1000:v);return Number.isNaN(d.getTime())?'—':d.toLocaleString('pt-BR')};
+let lastData=null;
+function walkFind(o,keys,depth=0){if(!o||typeof o!=='object'||depth>5)return null;for(const k of keys){if(o[k]!==undefined&&o[k]!==null)return o[k]}for(const v of Object.values(o)){if(v&&typeof v==='object'){const x=walkFind(v,keys,depth+1);if(x!==null&&x!==undefined)return x}}return null}
+function normalize(d){
+ const pool=d.pool||{};const wallet=d.wallet||{};const collective=first(pool,['pool_statistics.collective','collective'])||{};const network=first(pool,['network_statistics','network'])||{};const market=first(pool,['market'])||{};
+ const minerStats=first(wallet,['stats','wallet','data'])||wallet;
+ const hashrate=walkFind(minerStats,['hashRate','hashrate','hash_rate','avgHashrate','hashRate_1h']);
+ const balance=walkFind(minerStats,['balance','amtDue','amountDue','pendingBalance','pending','unpaid']);
+ const paid=walkFind(minerStats,['paid','amtPaid','amountPaid','totalPaid']);
+ const accepted=walkFind(minerStats,['validShares','accepted','sharesAccepted','valid_shares']);
+ const rejected=walkFind(minerStats,['invalidShares','rejected','sharesRejected','invalid_shares']);
+ const workerList=walkFind(minerStats,['workers','workerStats','worker_stats']);
+ const workerArray=Array.isArray(workerList)?workerList:[];
+ const lastShare=walkFind(minerStats,['lastShare','last_share','lastShareTime']);
+ const walletBlocks=walkFind(minerStats,['blocksFound','blocks_found','totalBlocksFound']);
+ const rewardAtomic=first(pool,['network_statistics.value','network.value','pool_statistics.general.last10blocksAvgReward']);
+ const difficulty=first(pool,['network_statistics.difficulty','network.difficulty']);
+ const height=first(pool,['network_statistics.height','network.height']);
+ const networkRate=difficulty?Number(difficulty)/120:null;
+ const price=first(pool,['market.price_usd','market.priceUsd']);
+ const latest=first(collective,['lastFoundBlock'])||{};
+ const totalBlocks=first(collective,['totalBlocksFound','total_blocks_found']);
+ const poolRate=first(collective,['hashRate','hashrate']);
+ const xmr=v=>v==null?null:Number(v)/1e12;
+ return {hashrate:hashrate==null?null:Number(hashrate),balance:xmr(balance),paid:xmr(paid),accepted:accepted==null?null:Number(accepted),rejected:rejected==null?null:Number(rejected),workers:workerArray.length||walkFind(minerStats,['workerCount','workersCount']),lastShare, walletBlocks, totalBlocks, latest, reward:xmr(rewardAtomic),difficulty,height,networkRate,price:price==null?null:Number(price),walletStats:minerStats,network,poolRate};
+}
+function render(d){
+ lastData=d;const n=normalize(d);const brlRate=Number(d.brlRate||0);const rate=n.hashrate;
+ set('updated',d.updatedAt?new Date(d.updatedAt).toLocaleString('pt-BR'):'—');
+ set('hashrate',rate==null?'Aguardando':(rate>=1e6?fmtNum(rate/1e6,2)+' MH/s':rate>=1000?fmtNum(rate/1000,2)+' kH/s':fmtNum(rate,1)+' H/s'));
+ set('workerhint',n.workers!=null?'Workers informados pela pool: '+n.workers:'Hashrate informado pela API da carteira');
+ set('balance',n.balance==null?'Indisponível':fmtXMR(n.balance));
+ set('balanceusd',n.balance==null?'A API ainda não retornou saldo':fmtUSD(n.balance*n.price));
+ set('paid',n.paid==null?'Indisponível':fmtXMR(n.paid));
+ set('price',n.price==null?'—':fmtUSD(n.price));
+ set('accepted',n.accepted==null?'—':fmtNum(n.accepted,0));
+ set('rejected',n.rejected==null?'—':fmtNum(n.rejected,0));
+ set('blocks',n.totalBlocks==null?'—':fmtNum(n.totalBlocks,0));
+ set('reward',n.reward==null?'—':fmtXMR(n.reward));
+ set('lastblock',n.latest&&n.latest.height?'Último bloco #'+n.latest.height+' · '+safeDate(n.latest.ts):'Último bloco publicado pela pool');
+ set('height',n.height==null?'—':fmtNum(n.height,0));
+ set('difficulty',n.difficulty==null?'—':compact(n.difficulty));
+ set('networkhash',n.networkRate==null?'—':(n.networkRate>=1e9?fmtNum(n.networkRate/1e9,2)+' GH/s':n.networkRate>=1e6?fmtNum(n.networkRate/1e6,2)+' MH/s':fmtNum(n.networkRate/1000,2)+' kH/s'));
+ set('lastshare',safeDate(n.lastShare));
+ set('workers',n.workers==null?'—':fmtNum(n.workers,0));
+ set('wallet',d.walletAddress?d.walletAddress.slice(0,12)+'…'+d.walletAddress.slice(-8):'Configurada');
+ set('status',d.error?'API com aviso: '+d.error:'Dados recebidos da HashVault');
+ const dayXmr=(rate&&n.difficulty&&n.reward)?rate*86400/Number(n.difficulty)*Number(n.reward):null;
+ const dayUSD=dayXmr!=null&&n.price!=null?dayXmr*n.price:null;
+ set('xmrd',dayXmr==null?'Aguardando hashrate e dificuldade':fmtXMR(dayXmr));
+ set('grossday',dayUSD==null?'—':fmtUSD(dayUSD));
+ set('grossmonth',dayUSD==null?'—':fmtUSD(dayUSD*30));
+ const cost=Number(document.getElementById('vpscost').value||0);
+ const fx=Number(d.brlRate||0);
+ const netUSD=dayUSD==null?null:dayUSD*30-(fx>0?cost/fx:0);
+ set('netmonth',netUSD==null?'—':(netUSD>=0?'+':'')+fmtUSD(netUSD));
+ set('netbrl',netUSD==null?'—':fmtBRL(netUSD*(fx||0)));
+ set('fxnote',fx>0?'Conversão indicativa: US$ 1 = R$ '+fmtNum(fx,4)+'. Ajuste o custo mensal da VPS acima.':'Cotação USD/BRL indisponível; lucro líquido em R$ não pode ser calculado ainda.');
+ const b=n.latest&&n.latest.height?[{height:n.latest.height,type:n.latest.poolType||'pool',value:n.latest.value||n.latest.reward||null,ts:n.latest.ts,valid:n.latest.valid,hash:n.latest.hash}]:[];
+ set('blockrows',b.length?b.map(x=>'<tr><td>#'+x.height+'</td><td>'+String(x.type).toUpperCase()+'</td><td>'+fmtXMR(x.value==null?null:Number(x.value)/1e12)+'</td><td>'+safeDate(x.ts)+'</td><td class="'+(x.valid?'good':'bad')+'">'+(x.valid?'Válido':x.valid===false?'Inválido':'—')+'</td></tr>').join(''):'<tr><td colspan="5">A API não retornou bloco recente.</td></tr>');
+}
+async function refresh(){set('status','Atualizando…');try{const r=await fetch('/api/mining',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'HTTP '+r.status);render(d)}catch(e){set('status','Falha: '+e.message)}}
+document.getElementById('refresh').addEventListener('click',refresh);
+document.getElementById('vpscost').value=localStorage.getItem('xmr-vps-cost')||'';
+document.getElementById('vpscost').addEventListener('input',e=>{localStorage.setItem('xmr-vps-cost',e.target.value);if(lastData)render(lastData)});
 refresh();setInterval(refresh,60000);
-</script></body></html>`;
+</script></body></html>\`;
 
-async function refreshMarket() {
+async function jsonFetch(url) {
+  const response = await fetch(url, { headers: { accept: "application/json", "user-agent": "MinerarXMR-Dashboard/1.0" }, signal: AbortSignal.timeout(12000) });
+  if (!response.ok) throw new Error("API respondeu HTTP " + response.status);
+  return response.json();
+}
+async function refreshData() {
   if (refreshing) return;
   refreshing = true;
   try {
-    const url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h";
-    const response = await fetch(url, { headers: { "accept": "application/json", "user-agent": "CryptoScout/1.0" }, signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error("CoinGecko respondeu HTTP " + response.status);
-    const data = await response.json();
-    if (!Array.isArray(data)) throw new Error("Resposta inesperada da API");
-    coins = data;
-    updatedAt = new Date().toISOString();
-    lastError = null;
+    const [poolResult, walletResult, fxResult] = await Promise.allSettled([
+      jsonFetch(POOL_API),
+      jsonFetch(POOL_API + "/wallet/" + encodeURIComponent(WALLET) + "/stats?chart=false&workers=true&poolType=false"),
+      jsonFetch("https://open.er-api.com/v6/latest/USD")
+    ]);
+    const pool = poolResult.status === "fulfilled" ? poolResult.value : null;
+    const wallet = walletResult.status === "fulfilled" ? walletResult.value : null;
+    const brlRate = fxResult.status === "fulfilled" && fxResult.value && fxResult.value.rates ? Number(fxResult.value.rates.BRL) : null;
+    const errors = [];
+    if (!pool) errors.push("Pool: " + poolResult.reason.message);
+    if (!wallet) errors.push("Carteira: " + walletResult.reason.message);
+    snapshot = { updatedAt: new Date().toISOString(), pool, wallet, walletAddress: WALLET, brlRate, error: errors.length ? errors.join("; ") : null };
   } catch (error) {
-    lastError = error.message;
+    snapshot.error = error.message;
   } finally {
     refreshing = false;
   }
 }
-
 const server = http.createServer((req, res) => {
   const path = new URL(req.url, "http://localhost").pathname;
+  res.setHeader("x-content-type-options", "nosniff");
   if (path === "/health" || path === "/healthz") {
     res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-    return res.end(JSON.stringify({ status: "ok", updatedAt, coinCount: coins.length, error: lastError }));
+    return res.end(JSON.stringify({ status: "ok", updatedAt: snapshot.updatedAt, error: snapshot.error }));
+  }
+  if (path === "/api/mining") {
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+    return res.end(JSON.stringify(snapshot));
   }
   if (path === "/api/market") {
-    const candidates = coins.filter(c => Number.isFinite(c.market_cap) && c.market_cap > 0 && c.market_cap <= MAX_MARKET_CAP && Number.isFinite(c.total_volume) && c.total_volume >= MIN_VOLUME);
     res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-    return res.end(JSON.stringify({ coins, candidates, candidates_count: candidates.length, updatedAt, error: lastError, filters: { maxMarketCap: MAX_MARKET_CAP, minVolume: MIN_VOLUME } }));
+    return res.end(JSON.stringify({ error: "Este painel acompanha mineração Monero. Veja /api/mining." }));
   }
   if (path === "/" || path === "/index.html") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
@@ -89,9 +194,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(404, { "content-type": "application/json; charset=utf-8" });
   res.end(JSON.stringify({ error: "Não encontrado" }));
 });
-
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("Crypto Scout Web ouvindo na porta " + PORT);
-  refreshMarket();
-  setInterval(refreshMarket, REFRESH_MS);
+  console.log("Minerar XMR Dashboard ouvindo na porta " + PORT);
+  refreshData();
+  setInterval(refreshData, REFRESH_MS);
 });
