@@ -1,4 +1,5 @@
 const http = require("node:http");
+const fs = require("node:fs");
 
 const PORT = Number(process.env.PORT || 3000);
 const REFRESH_MS = Math.max(60, Number(process.env.REFRESH_SECONDS || 120)) * 1000;
@@ -66,6 +67,7 @@ footer{margin-top:24px;color:#8293ad;font-size:11px;line-height:1.7}.refresh{bac
 <div class="statrow"><span>Trabalhadores ativos</span><strong id="workers">—</strong></div>
 <div class="statrow"><span>Endereço configurado</span><strong class="mono" id="wallet">—</strong></div>
 </div></div>
+<div class="section"><div class="sectionhead"><h3>Terminal ao vivo — logs reais do XMRig</h3><span class="pill" id="logstatus">Aguardando conexão segura</span></div><p style="margin-bottom:12px">Eventos reais do serviço no Ubuntu, atualizados automaticamente. Somente leitura.</p><div class="wide" style="background:#050a10;padding:14px"><div id="logterminal" class="mono" style="height:280px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.65;color:#a8bad0">Aguardando a integração de logs do servidor…</div></div></div>
 <div class="section"><div class="sectionhead"><h3>Blocos recentes da pool</h3></div><p style="margin-bottom:12px">São blocos encontrados pela pool inteira, não necessariamente pelo seu minerador. A API pública pode disponibilizar somente o bloco mais recente.</p><div class="tablewrap"><table><thead><tr><th>Altura</th><th>Tipo</th><th>Recompensa</th><th>Encontrado em</th><th>Validade</th></tr></thead><tbody id="blockrows"><tr><td colspan="5">Carregando dados da pool…</td></tr></tbody></table></div></div>
 <div class="notice"><strong>Como ler a velocidade:</strong> o hashrate instantâneo oscila conforme a carga e a medição da pool. Compare as médias de 1 h, 3 h, 6 h e 24 h antes de concluir que a mineração está piorando. Se todas caírem, confira o uso de CPU e se o worker segue ativo. <strong>Lucro é uma estimativa, não uma garantia.</strong> A recompensa mostrada por bloco é a recompensa total do bloco da pool, não a sua recompensa individual; sua parte depende das shares e do esquema de pagamento. Não confunda os blocos encontrados pela pool com blocos encontrados pela sua VPS. O saldo acumulado e o limite de saque dependem dos campos que a API pública retornar; quando o limite não estiver disponível, confira-o no painel oficial da HashVault. A API da pool informa pagamentos, mas o painel não consegue confirmar pagamentos na carteira local nem ler logs internos do XMRig dentro do host. Para monitoramento do processo em tempo real será necessário um endpoint local protegido no servidor.</div>
 <footer>Minerar XMR · Atualização automática a cada 60 segundos · Fontes: API pública HashVault. Nenhuma chave privada é solicitada ou armazenada. A estimativa de receita não substitui o histórico de pagamentos.</footer>
@@ -158,7 +160,8 @@ function render(d){
  const b=n.latest&&n.latest.height?[{height:n.latest.height,type:n.latest.poolType||'pool',value:n.latest.value||n.latest.reward||null,ts:n.latest.ts,valid:n.latest.valid,hash:n.latest.hash}]:[];
  document.getElementById('blockrows').innerHTML=b.length?b.map(x=>'<tr><td>#'+String(x.height)+'</td><td>'+String(x.type||'pool').toUpperCase()+'</td><td>'+fmtXMR(x.value==null?null:Number(x.value)/1e12)+'</td><td>'+safeDate(x.ts)+'</td><td class="'+(x.valid?'good':'bad')+'">'+(x.valid?'Válido':x.valid===false?'Inválido':'—')+'</td></tr>').join(''):'<tr><td colspan="5">A API não retornou bloco recente.</td></tr>';
 }
-async function refresh(){set('status','Atualizando…');try{const r=await fetch('/api/mining',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'HTTP '+r.status);render(d)}catch(e){set('status','Falha: '+e.message)}}
+async function refreshLogs(){const el=document.getElementById('logterminal');try{const r=await fetch('/api/xmrig-logs',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'HTTP '+r.status);document.getElementById('logstatus').textContent=d.available?'Logs reais conectados':'Aguardando agente do servidor';if(!d.available){el.textContent='Ainda não há logs publicados pelo agente local. Configure o serviço de leitura no Ubuntu para ativar esta área.';return;}const wasBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-30;el.textContent=(d.lines||[]).map(x=>x.line).join('\\n')||'Nenhuma linha de log ainda.';if(wasBottom)el.scrollTop=el.scrollHeight;}catch(e){document.getElementById('logstatus').textContent='Logs indisponíveis';el.textContent='Não foi possível ler os logs: '+e.message;}}
+async function refresh(){set('status','Atualizando…');try{const r=await fetch('/api/mining',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'HTTP '+r.status);render(d)}catch(e){set('status','Falha: '+e.message)}finally{refreshLogs()}}
 document.getElementById('refresh').addEventListener('click',refresh);
 document.getElementById('vpscost').value=localStorage.getItem('xmr-vps-cost')||'';
 document.getElementById('vpscost').addEventListener('input',e=>{localStorage.setItem('xmr-vps-cost',e.target.value);if(lastData)render(lastData)});
@@ -202,6 +205,16 @@ const server = http.createServer((req, res) => {
   if (path === "/api/mining") {
     res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
     return res.end(JSON.stringify(snapshot));
+  }
+  if (path === "/api/xmrig-logs") {
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+    try {
+      const file = "/app/xmrig-logs.json";
+      const data = JSON.parse(fs.readFileSync(file, "utf8"));
+      return res.end(JSON.stringify({ available: true, updatedAt: data.updatedAt || null, lines: Array.isArray(data.lines) ? data.lines.slice(-100) : [] }));
+    } catch {
+      return res.end(JSON.stringify({ available: false, lines: [] }));
+    }
   }
   if (path === "/api/market") {
     res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
