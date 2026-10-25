@@ -2,7 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const PORT = Number(process.env.PORT || 3000);
 const WAM_WALLET = process.env.WAM_WALLET || "wam1qch64hevyaz5lgwjfm9vv487hemev4g2qssfksc";
-const WAM_STATUS_URL = process.env.WAM_STATUS_URL || "";
+const WAM_STATUS_URL = process.env.WAM_STATUS_URL || "http://172.18.0.1:9557/status";
 const LOG_FILE = process.env.WAM_LOG_FILE || "/app/wam-miner-logs.json";
 
 const page = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080d18"><title>Minerar WAM | Painel solo</title>
@@ -34,7 +34,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("x-content-type-options", "nosniff"); res.setHeader("cache-control", "no-store");
   if (path === "/health" || path === "/healthz") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({status:"ok",app:"wam-dashboard"})); }
   if (path === "/api/mining") { const d=await getMonitor(); res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({...d,walletAddress:WAM_WALLET})); }
-  if (path === "/api/wam-logs") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); try { const d=JSON.parse(fs.readFileSync(LOG_FILE,"utf8")); return res.end(JSON.stringify({available:true,updatedAt:d.updatedAt||null,lines:Array.isArray(d.lines)?d.lines.slice(-100):[]})); } catch { return res.end(JSON.stringify({available:false,lines:[]})); } }
+  if (path === "/api/wam-logs") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); try { const url = WAM_STATUS_URL ? WAM_STATUS_URL.replace(/\\/status$/, "/logs") : ""; if (url) { const r = await fetch(url, {headers:{accept:"application/json"}, signal:AbortSignal.timeout(5000)}); if (r.ok) return res.end(JSON.stringify(await r.json())); } const d=JSON.parse(fs.readFileSync(LOG_FILE,"utf8")); return res.end(JSON.stringify({available:true,updatedAt:d.updatedAt||null,lines:Array.isArray(d.lines)?d.lines.slice(-100):[]})); } catch { return res.end(JSON.stringify({available:false,lines:[]})); } }
   if (path === "/" || path === "/index.html") { res.writeHead(200, {"content-type":"text/html; charset=utf-8"}); return res.end(page); }
   res.writeHead(404, {"content-type":"application/json; charset=utf-8"}); res.end(JSON.stringify({error:"Não encontrado"}));
 });
