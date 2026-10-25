@@ -35,7 +35,18 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("x-content-type-options", "nosniff"); res.setHeader("cache-control", "no-store");
   if (path === "/health" || path === "/healthz") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({status:"ok",app:"wam-dashboard"})); }
   if (path === "/api/mining") { const d=await getMonitor(); res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({...d,walletAddress:WAM_WALLET})); }
-  if (path === "/api/pool-miner") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); try { const url = "https://pool.wamcoin.org/api/miner?address=" + encodeURIComponent(WAM_WALLET); const r = await fetch(url, {headers:{accept:"application/json"}, signal:AbortSignal.timeout(8000)}); if (!r.ok) throw new Error("Pool respondeu HTTP " + r.status); const d = await r.json(); return res.end(JSON.stringify({available:true,minimumPayoutWam:1,updatedAt:new Date().toISOString(),data:d})); } catch(e) { return res.end(JSON.stringify({available:false,error:e.message,minimumPayoutWam:1})); } }
+  if (path === "/api/pool-miner") {
+    res.writeHead(200, {"content-type":"application/json; charset=utf-8"});
+    try {
+      const url = "https://pool.wamcoin.org/api/miner?address=" + encodeURIComponent(WAM_WALLET);
+      const r = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error("Pool respondeu HTTP " + r.status);
+      const data = await r.json();
+      return res.end(JSON.stringify({ available: true, minimumPayoutWam: 1, updatedAt: new Date().toISOString(), data }));
+    } catch (e) {
+      return res.end(JSON.stringify({ available: false, error: e.message, minimumPayoutWam: 1 }));
+    }
+  }
   if (path === "/api/wam-logs") { res.writeHead(200, {"content-type":"application/json; charset=utf-8"}); try { const url = WAM_STATUS_URL ? (WAM_STATUS_URL.endsWith("/status") ? WAM_STATUS_URL.slice(0, -7) + "/logs" : WAM_STATUS_URL + "/logs") : ""; if (url) { const r = await fetch(url, {headers:{accept:"application/json"}, signal:AbortSignal.timeout(5000)}); if (r.ok) return res.end(JSON.stringify(await r.json())); } const d=JSON.parse(fs.readFileSync(LOG_FILE,"utf8")); return res.end(JSON.stringify({available:true,updatedAt:d.updatedAt||null,lines:Array.isArray(d.lines)?d.lines.slice(-100):[]})); } catch { return res.end(JSON.stringify({available:false,lines:[]})); } }
   if (path === "/" || path === "/index.html") { res.writeHead(200, {"content-type":"text/html; charset=utf-8"}); return res.end(page); }
   res.writeHead(404, {"content-type":"application/json; charset=utf-8"}); res.end(JSON.stringify({error:"Não encontrado"}));
