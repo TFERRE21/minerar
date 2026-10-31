@@ -109,7 +109,7 @@ function renderLogs(d){last.logs=d;const lines=Array.isArray(d.lines)?d.lines:[]
 async function getJson(url){const r=await fetch(url,{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"HTTP "+r.status);return d}
 async function refresh(){const stamp=new Date();$("updated").textContent=stamp.toLocaleTimeString("pt-BR");const results=await Promise.allSettled([getJson("/api/mining"),getJson("/api/pool-miner"),getJson("/api/wam-logs")]);if(results[0].status==="fulfilled")renderMining(results[0].value);else $("connection").textContent="Falha no monitor local";if(results[1].status==="fulfilled")renderPool(results[1].value);if(results[2].status==="fulfilled")renderLogs(results[2].value)}
 $("refresh").addEventListener("click",refresh);$("refresh-state").textContent=(REFRESH_MS/1000)+"s";refresh();setInterval(refresh,REFRESH_MS);
-</script></body></html>`.replace("__REFRESH_MS__", String(REFRESH_MS)).replace("WAM_WALLET_PLACEHOLDER", "${escapeHtml(WAM_WALLET)}");
+</script></body></html>`.replace("__REFRESH_MS__", String(REFRESH_MS)).replace("WAM_WALLET_PLACEHOLDER", JSON.stringify(WAM_WALLET));
 
 function send(res, status, value) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
