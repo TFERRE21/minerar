@@ -226,14 +226,13 @@ async function getPool() {
   } catch (e) { return { available: false, source: "Pool WAM · /api/miner", error: e.message, data: {} }; }
 }
 async function getMarket() {
-  try {
-    const url="https://api.coingecko.com/api/v3/simple/price?ids=wam&vs_currencies=brl,usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true";
-    const r=await fetch(url,{headers:{accept:"application/json"},signal:AbortSignal.timeout(7000)});
-    if(!r.ok) throw new Error("CoinGecko respondeu HTTP "+r.status);
-    const raw=await r.json(); const coin=raw?.wam;
-    if(!coin || parseNum(coin.brl)===null) throw new Error("Cotação WAM/BRL não encontrada na resposta");
-    return {available:true,source:"CoinGecko",updatedAt:new Date().toISOString(),priceBrl:parseNum(coin.brl),priceUsd:parseNum(coin.usd),change24hBrl:parseNum(coin.brl_24h_change),marketCapBrl:parseNum(coin.brl_market_cap),volume24hBrl:parseNum(coin.brl_24h_vol)};
-  } catch(e) { return {available:false,source:"CoinGecko",error:e.message}; }
+  // Do not map native WAM Coin to the unrelated WAM App token ticker.
+  // The official WAM Coin project says it does not operate a market.
+  return {
+    available: false,
+    source: "WAM Coin nativa · fonte oficial",
+    error: "Sem cotação pública confirmada para a moeda nativa WAM. Não usar outro token apenas por compartilhar o ticker."
+  };
 }
 async function getLogs() {
   try {
