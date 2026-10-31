@@ -32,7 +32,9 @@ main{min-width:0}.topbar{height:58px;background:#ffffffed;border-bottom:1px soli
 .activity{display:grid;gap:0}.activityrow{display:grid;grid-template-columns:62px minmax(80px,1fr) auto;gap:9px;padding:9px 0;border-bottom:1px solid #edf0f5;font-size:11px}.activityrow:last-child{border-bottom:0}.activityrow span:first-child{color:var(--muted)}.empty{color:var(--muted);font-size:12px;padding:15px 0}
 .tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}th{text-align:left;background:#f6f8fb;color:#52617a;font-weight:600;padding:9px 8px}td{padding:9px 8px;border-bottom:1px solid #edf0f5;white-space:nowrap}td.mono{font-family:ui-monospace,monospace}
 .terminal{background:#f7f9fc;border:1px solid var(--border);border-radius:9px;padding:12px;height:200px;overflow:auto;font:11px/1.6 ui-monospace,monospace;white-space:pre-wrap;color:#34435d}
-.footer{font-size:10px;color:var(--muted);padding:15px 2px}.hidden{display:none!important}
+.footer{font-size:10px;color:var(--muted);padding:15px 2px}
+.roadmap{display:grid;gap:0}.roaditem{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;position:relative;padding:0 0 22px}.roaditem:not(:last-child):before{content:"";position:absolute;left:16px;top:31px;bottom:0;width:2px;background:var(--border)}.roadpin{z-index:1;width:33px;height:33px;border-radius:50%;display:grid;place-items:center;background:var(--surface2);border:1px solid var(--border);font-weight:700;color:var(--muted)}.roaditem.done .roadpin{background:var(--green2);border-color:#b8e8d1;color:#087c4a}.roaditem.active .roadpin{background:var(--blue2);border-color:#b9d2f8;color:var(--blue)}.roadmeta{font-size:10px;color:var(--muted);margin:2px 0 5px}.roaditem strong{font-size:13px}.roaditem p{font-size:12px;color:var(--muted);line-height:1.6;margin:5px 0 0}
+.hidden{display:none!important}
 body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--border:#2b3a50;--text:#e7eef8;--muted:#a0afc2;--green2:#123c30;--blue2:#172f4c;--orange2:#44311a;--shadow:none}body.dark aside,body.dark .topbar{background:#111d2f}body.dark .nav{color:#d4deeb}body.dark .nav.active{color:#5de0a8}body.dark .chartgrid{stroke:#2b3a50}body.dark .chartlabel{fill:#a0afc2}body.dark th,body.dark .terminal{background:#111d2f;color:#d4deeb}body.dark td{border-color:#2b3a50}body.dark .kv div,body.dark .activityrow{border-color:#2b3a50}
 @media(max-width:1100px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sectiongrid{grid-template-columns:1fr}}
 @media(max-width:700px){.app{grid-template-columns:1fr}aside{height:auto;min-height:0;position:relative;padding:12px}.brand{padding:0 5px 10px}nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.nav{justify-content:center;padding:9px 3px;font-size:10px;flex-direction:column;gap:3px}.sidebottom{display:none}.topbar{height:48px;padding:0 13px}.content{padding:16px 12px}.pagehead{align-items:flex-start;flex-direction:column}.pagehead h1{font-size:22px}.cards{gap:8px}.card{padding:12px;min-height:108px}.metric{font-size:21px}.panel{padding:13px}.topmuted{display:none}}
@@ -48,6 +50,7 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
   <button class="nav" data-view="shares"><span>⇄</span>Shares</button>
   <button class="nav" data-view="blocks"><span>⬡</span>Blocos</button>
   <button class="nav" data-view="logs"><span>▤</span>Logs</button>
+  <button class="nav" data-view="roadmap"><span>▥</span>Evolução do projeto</button>
   <button class="nav" data-view="settings"><span>⚙</span>Configurações</button>
  </nav>
  <div class="sidebottom"><span class="online" id="side-dot"></span><strong id="side-status">Verificando serviço</strong><br><span id="side-service">wam-miner.service</span></div>
@@ -90,6 +93,45 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
   <section id="view-shares" class="hidden"><div class="pagehead"><div><h1>Shares</h1><p>Contagem de shares válidas e rejeitadas publicada pela pool/minerador.</p></div></div><div class="panel"><div class="kv" id="shares-info"></div></div></section>
   <section id="view-blocks" class="hidden"><div class="pagehead"><div><h1>Blocos</h1><p>Não confundir blocos encontrados pelo pool com blocos encontrados por este worker.</p></div></div><div class="panel"><div class="tablewrap"><table><thead><tr><th>Indicador</th><th>Valor</th><th>Fonte</th></tr></thead><tbody id="blocks-table"></tbody></table></div></div></section>
   <section id="view-logs" class="hidden"><div class="pagehead"><div><h1>Logs</h1><p>Últimas linhas publicadas para o painel.</p></div></div><div class="panel"><div class="terminal" id="terminal">Aguardando…</div></div></section>
+  <section id="view-roadmap" class="hidden">
+   <div class="pagehead"><div><h1>Evolução do projeto</h1><p>Onde estamos, próximos objetivos e calendário planejado do Minerador WAM.</p></div><span class="chip green">Em desenvolvimento</span></div>
+   <div class="cards">
+    <article class="card"><div class="metrichead"><span class="ico">✓</span>Etapa atual</div><div class="metric" style="font-size:19px">Monitoramento básico</div><div class="hint">Minerador conectado e painel recebendo métricas locais</div></article>
+    <article class="card"><div class="metrichead"><span class="ico blue">◷</span>Marco atual</div><div class="metric">31/10/2026</div><div class="hint">Data de referência deste plano</div></article>
+    <article class="card"><div class="metrichead"><span class="ico orange">◎</span>Próximo foco</div><div class="metric" style="font-size:19px">Dados da pool</div><div class="hint">Validar saldo, pagamentos e shares</div></article>
+    <article class="card"><div class="metrichead"><span class="ico">⚑</span>Meta do projeto</div><div class="metric" style="font-size:19px">Painel completo</div><div class="hint">Operação, rede, carteira e economia com fontes verificadas</div></article>
+   </div>
+   <div class="section panel"><div class="panelhead"><h2>Onde estamos agora</h2><span class="chip">Situação em 31/10/2026</span></div><div class="kv">
+    <div class="k">Conexão com o minerador</div><div class="v"><span class="chip green">Funcionando</span></div>
+    <div class="k">Hashrate, CPU, threads e uptime</div><div class="v"><span class="chip green">Recebendo dados</span></div>
+    <div class="k">Shares e estatísticas do processo</div><div class="v"><span class="chip green">Recebendo dados</span></div>
+    <div class="k">Histórico de hashrate</div><div class="v"><span class="chip green">Coleta implementada</span></div>
+    <div class="k">Saldo e pagamentos da pool</div><div class="v"><span class="chip warning">A validar</span></div>
+    <div class="k">Cotação da moeda nativa WAM</div><div class="v"><span class="chip warning">Sem mercado confirmado</span></div>
+    <div class="k">CPU individual por thread</div><div class="v"><span class="chip">Pendente de fonte no host</span></div>
+    <div class="k">Alertas e relatórios automáticos</div><div class="v"><span class="chip">Planejado</span></div>
+   </div><p class="hint" style="margin-top:12px">Os estados representam o que já foi verificado. Itens pendentes não são tratados como concluídos e valores financeiros não serão estimados sem fontes confiáveis.</p></div>
+   <div class="section panel"><div class="panelhead"><h2>Roadmap — próximos passos</h2><span class="chip">Datas planejadas · sujeitas à validação técnica</span></div><div class="roadmap">
+    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">Concluído · até 31/10/2026</div><strong>Etapa 1 — Base de mineração e monitoramento</strong><p>Conectar o painel ao serviço existente; exibir hashrate, shares, CPU, threads, uptime, estado do serviço e histórico.</p></div></div>
+    <div class="roaditem active"><div class="roadpin">2</div><div><div class="roadmeta">01 a 07/11/2026 · Em andamento</div><strong>Etapa 2 — Integração completa com a pool</strong><p>Validar a resposta real da API, identificar saldo pendente, pagamentos, shares, worker e histórico de pagamentos.</p></div></div>
+    <div class="roaditem"><div class="roadpin">3</div><div><div class="roadmeta">08 a 14/11/2026 · Planejado</div><strong>Etapa 3 — Carteira e painel financeiro</strong><p>Separar moedas mineradas, saldo pendente, total pago e acumulado. Converter para reais somente se houver cotação verificável da moeda nativa WAM.</p></div></div>
+    <div class="roaditem"><div class="roadpin">4</div><div><div class="roadmeta">15 a 21/11/2026 · Planejado</div><strong>Etapa 4 — Rede, blocos e desempenho avançado</strong><p>Exibir dados confirmados do nó, altura, sincronização, pares, dificuldade, blocos da rede e investigar telemetria por thread sem interferir no serviço.</p></div></div>
+    <div class="roaditem"><div class="roadpin">5</div><div><div class="roadmeta">22 a 30/11/2026 · Planejado</div><strong>Etapa 5 — Alertas, relatórios e estabilidade</strong><p>Adicionar alertas de queda, perda de conexão, rejeição elevada e falha de coleta; reforçar histórico persistente, exportação e segurança.</p></div></div>
+   </div></div>
+   <div class="section panel"><div class="panelhead"><h2>Onde queremos chegar</h2><span class="chip">Objetivo final</span></div><div class="cards">
+    <article class="card"><div class="metrichead"><span class="ico">◉</span>Operação</div><strong>Visão 24 horas</strong><div class="hint">Status, hashrate, CPU, memória, threads, uptime e alertas.</div></article>
+    <article class="card"><div class="metrichead"><span class="ico blue">⇄</span>Pool e carteira</div><strong>Rastreabilidade</strong><div class="hint">Shares, saldo, pagamentos e histórico consultados na fonte oficial.</div></article>
+    <article class="card"><div class="metrichead"><span class="ico orange">R$</span>Resultado financeiro</div><strong>Valor real, sem chute</strong><div class="hint">Conversão para BRL e ganhos por período quando houver mercado confiável.</div></article>
+    <article class="card"><div class="metrichead"><span class="ico">▤</span>Gestão</div><strong>Histórico e relatórios</strong><div class="hint">Gráficos, comparativos diários, semanais e mensais e exportação.</div></article>
+   </div></div>
+   <div class="section panel"><div class="panelhead"><h2>Critérios de conclusão</h2></div><div class="kv">
+    <div class="k">Dados operacionais</div><div class="v">Atualizados e com fonte identificada</div>
+    <div class="k">Dados financeiros</div><div class="v">Confirmados pela pool e/ou mercado verificável</div>
+    <div class="k">Histórico</div><div class="v">Persistente após reinicialização e publicação</div>
+    <div class="k">Alertas</div><div class="v">Testados sem alterar a mineração automaticamente</div>
+    <div class="k">Segurança</div><div class="v">Sem expor chaves privadas ou credenciais</div>
+   </div></div>
+  </section>
   <section id="view-settings" class="hidden"><div class="pagehead"><div><h1>Configurações</h1><p>Parâmetros que o painel consegue ler. A interface não altera o serviço de mineração.</p></div></div><div class="panel"><div class="kv" id="settings-info"></div><p class="hint">Para segurança, o painel não expõe credenciais RPC, cookie do nó ou chaves privadas.</p></div></section>
   <div class="footer">WAM Coin · Painel de monitoramento · Valores ausentes não são convertidos em zero · Atualização automática a cada 10 segundos</div>
  </div>
