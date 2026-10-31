@@ -10,7 +10,7 @@ Environment=WAM_MONITOR_PORT=9557
 Environment=WAM_MINER_SERVICE=wam-miner.service
 Environment=WAM_WALLET=wam1qch64hevyaz5lgwjfm9vv487hemev4g2qssfksc
 Environment=WAM_POOL=stratum+tcp://pool.wamcoin.org:3334
-ExecStart=/usr/bin/node /opt/wam-dashboard/deploy/wam-host-monitor.js
+ExecStart=/usr/bin/node /opt/wam-host-monitor.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
