@@ -160,7 +160,7 @@ function findPoolField(root, aliases, depth=0) {
   return null;
 }
 function normalizePool(raw) {
-  const valid=findPoolField(raw,["validShares","sharesValidas","acceptedShares","accepted","valid","shares"]);
+  const valid=findPoolField(raw,["validShares","sharesValidas","acceptedShares","accepted","valid"]);
   const rejected=findPoolField(raw,["rejectedShares","sharesRejeitadas","rejected"]);
   const balance=findPoolField(raw,["balance","saldo","pendingBalance","pending","unpaid","immatureBalance","owed","amountOwed"]);
   const totalPaid=findPoolField(raw,["totalPaid","totalPago","paid","total_paid","paidAmount","payments"]);
