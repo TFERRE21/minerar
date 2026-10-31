@@ -1,0 +1,21 @@
+[Unit]
+Description=WAM Miner read-only host metrics bridge
+After=network-online.target wam-miner.service
+Wants=network-online.target
+[Service]
+Type=simple
+User=root
+Environment=WAM_MONITOR_BIND=172.18.0.1
+Environment=WAM_MONITOR_PORT=9557
+Environment=WAM_MINER_SERVICE=wam-miner.service
+Environment=WAM_WALLET=wam1qch64hevyaz5lgwjfm9vv487hemev4g2qssfksc
+Environment=WAM_POOL=stratum+tcp://pool.wamcoin.org:3334
+ExecStart=/usr/bin/node /opt/wam-host-monitor.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+[Install]
+WantedBy=multi-user.target
