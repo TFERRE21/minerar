@@ -94,43 +94,55 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
   <section id="view-blocks" class="hidden"><div class="pagehead"><div><h1>Blocos</h1><p>Não confundir blocos encontrados pelo pool com blocos encontrados por este worker.</p></div></div><div class="panel"><div class="tablewrap"><table><thead><tr><th>Indicador</th><th>Valor</th><th>Fonte</th></tr></thead><tbody id="blocks-table"></tbody></table></div></div></section>
   <section id="view-logs" class="hidden"><div class="pagehead"><div><h1>Logs</h1><p>Últimas linhas publicadas para o painel.</p></div></div><div class="panel"><div class="terminal" id="terminal">Aguardando…</div></div></section>
   <section id="view-roadmap" class="hidden">
-   <div class="pagehead"><div><h1>Evolução do projeto</h1><p>Onde estamos, próximos objetivos e calendário planejado do Minerador WAM.</p></div><span class="chip green">Em desenvolvimento</span></div>
+   <div class="pagehead"><div><h1>WAM Coin — evolução da moeda</h1><p>Histórico, situação atual da rede, tokenomics, adoção e próximos marcos do projeto oficial.</p></div><span class="chip green">Mainnet ativa desde 15/09/2026</span></div>
    <div class="cards">
-    <article class="card"><div class="metrichead"><span class="ico">✓</span>Etapa atual</div><div class="metric" style="font-size:19px">Monitoramento básico</div><div class="hint">Minerador conectado e painel recebendo métricas locais</div></article>
-    <article class="card"><div class="metrichead"><span class="ico blue">◷</span>Marco atual</div><div class="metric">31/10/2026</div><div class="hint">Data de referência deste plano</div></article>
-    <article class="card"><div class="metrichead"><span class="ico orange">◎</span>Próximo foco</div><div class="metric" style="font-size:19px">Dados da pool</div><div class="hint">Validar saldo, pagamentos e shares</div></article>
-    <article class="card"><div class="metrichead"><span class="ico">⚑</span>Meta do projeto</div><div class="metric" style="font-size:19px">Painel completo</div><div class="hint">Operação, rede, carteira e economia com fontes verificadas</div></article>
+    <article class="card"><div class="metrichead"><span class="ico">◉</span>Tipo de projeto</div><div class="metric" style="font-size:19px">Layer 1 · Proof of Work</div><div class="hint">Blockchain própria baseada em Bitcoin Core v28.1</div></article>
+    <article class="card"><div class="metrichead"><span class="ico blue">⌁</span>Algoritmo</div><div class="metric" style="font-size:19px">RandomX</div><div class="hint">Mineração com CPU convencional</div></article>
+    <article class="card"><div class="metrichead"><span class="ico orange">◷</span>Bloco-alvo</div><div class="metric">120 s</div><div class="hint">Aproximadamente 2 minutos por bloco</div></article>
+    <article class="card"><div class="metrichead"><span class="ico">▣</span>Oferta máxima</div><div class="metric">22 milhões</div><div class="hint">Limite máximo de 22.000.000 WAM</div></article>
    </div>
-   <div class="section panel"><div class="panelhead"><h2>Onde estamos agora</h2><span class="chip">Situação em 31/10/2026</span></div><div class="kv">
-    <div class="k">Conexão com o minerador</div><div class="v"><span class="chip green">Funcionando</span></div>
-    <div class="k">Hashrate, CPU, threads e uptime</div><div class="v"><span class="chip green">Recebendo dados</span></div>
-    <div class="k">Shares e estatísticas do processo</div><div class="v"><span class="chip green">Recebendo dados</span></div>
-    <div class="k">Histórico de hashrate</div><div class="v"><span class="chip green">Coleta implementada</span></div>
-    <div class="k">Saldo e pagamentos da pool</div><div class="v"><span class="chip warning">A validar</span></div>
-    <div class="k">Cotação da moeda nativa WAM</div><div class="v"><span class="chip warning">Sem mercado confirmado</span></div>
-    <div class="k">CPU individual por thread</div><div class="v"><span class="chip">Pendente de fonte no host</span></div>
-    <div class="k">Alertas e relatórios automáticos</div><div class="v"><span class="chip">Planejado</span></div>
-   </div><p class="hint" style="margin-top:12px">Os estados representam o que já foi verificado. Itens pendentes não são tratados como concluídos e valores financeiros não serão estimados sem fontes confiáveis.</p></div>
-   <div class="section panel"><div class="panelhead"><h2>Roadmap — próximos passos</h2><span class="chip">Datas planejadas · sujeitas à validação técnica</span></div><div class="roadmap">
-    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">Concluído · até 31/10/2026</div><strong>Etapa 1 — Base de mineração e monitoramento</strong><p>Conectar o painel ao serviço existente; exibir hashrate, shares, CPU, threads, uptime, estado do serviço e histórico.</p></div></div>
-    <div class="roaditem active"><div class="roadpin">2</div><div><div class="roadmeta">01 a 07/11/2026 · Em andamento</div><strong>Etapa 2 — Integração completa com a pool</strong><p>Validar a resposta real da API, identificar saldo pendente, pagamentos, shares, worker e histórico de pagamentos.</p></div></div>
-    <div class="roaditem"><div class="roadpin">3</div><div><div class="roadmeta">08 a 14/11/2026 · Planejado</div><strong>Etapa 3 — Carteira e painel financeiro</strong><p>Separar moedas mineradas, saldo pendente, total pago e acumulado. Converter para reais somente se houver cotação verificável da moeda nativa WAM.</p></div></div>
-    <div class="roaditem"><div class="roadpin">4</div><div><div class="roadmeta">15 a 21/11/2026 · Planejado</div><strong>Etapa 4 — Rede, blocos e desempenho avançado</strong><p>Exibir dados confirmados do nó, altura, sincronização, pares, dificuldade, blocos da rede e investigar telemetria por thread sem interferir no serviço.</p></div></div>
-    <div class="roaditem"><div class="roadpin">5</div><div><div class="roadmeta">22 a 30/11/2026 · Planejado</div><strong>Etapa 5 — Alertas, relatórios e estabilidade</strong><p>Adicionar alertas de queda, perda de conexão, rejeição elevada e falha de coleta; reforçar histórico persistente, exportação e segurança.</p></div></div>
+   <div class="section panel"><div class="panelhead"><h2>O que é a WAM Coin</h2><span class="chip">Informação oficial</span></div><p style="font-size:12px;line-height:1.7;color:var(--muted)">A WAM Coin é uma criptomoeda independente, com blockchain própria (Layer 1), baseada no Bitcoin Core v28.1. Usa Proof of Work com RandomX, ajuste de dificuldade DarkGravityWave v3 a cada bloco e alvo de bloco de dois minutos. Não é o token WAM de outro projeto e não depende de uma blockchain externa.</p><div class="kv">
+    <div class="k">Código-fonte</div><div class="v"><a href="https://gitlab.com/WAMCoin/wam-coin" target="_blank" rel="noopener">GitLab oficial</a></div>
+    <div class="k">Site oficial</div><div class="v"><a href="https://wamcoin.org/" target="_blank" rel="noopener">wamcoin.org</a></div>
+    <div class="k">Explorador</div><div class="v"><a href="https://explorer.wamcoin.org/" target="_blank" rel="noopener">Ver blockchain</a></div>
+    <div class="k">Pool de mineração</div><div class="v"><a href="https://pool.wamcoin.org/" target="_blank" rel="noopener">pool.wamcoin.org</a></div>
+    <div class="k">Comunicados</div><div class="v"><a href="https://t.me/wam_coin_updates" target="_blank" rel="noopener">Canal oficial</a></div>
    </div></div>
-   <div class="section panel"><div class="panelhead"><h2>Onde queremos chegar</h2><span class="chip">Objetivo final</span></div><div class="cards">
-    <article class="card"><div class="metrichead"><span class="ico">◉</span>Operação</div><strong>Visão 24 horas</strong><div class="hint">Status, hashrate, CPU, memória, threads, uptime e alertas.</div></article>
-    <article class="card"><div class="metrichead"><span class="ico blue">⇄</span>Pool e carteira</div><strong>Rastreabilidade</strong><div class="hint">Shares, saldo, pagamentos e histórico consultados na fonte oficial.</div></article>
-    <article class="card"><div class="metrichead"><span class="ico orange">R$</span>Resultado financeiro</div><strong>Valor real, sem chute</strong><div class="hint">Conversão para BRL e ganhos por período quando houver mercado confiável.</div></article>
-    <article class="card"><div class="metrichead"><span class="ico">▤</span>Gestão</div><strong>Histórico e relatórios</strong><div class="hint">Gráficos, comparativos diários, semanais e mensais e exportação.</div></article>
+   <div class="section panel"><div class="panelhead"><h2>Linha do tempo da moeda</h2><span class="chip">Fatos e datas publicados pelo projeto</span></div><div class="roadmap">
+    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">26/08/2026 · Concluído</div><strong>Registro de identificação da moeda</strong><p>O projeto informa que foi incluído nos registros SLIP-0044 e SLIP-0173, com coin type 5718349 e prefixo de endereço wam. Isso facilita a identificação da rede por softwares compatíveis; não significa listagem em exchange nem endosso comercial.</p></div></div>
+    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">15/09/2026 · Concluído</div><strong>Lançamento da mainnet</strong><p>A rede principal foi aberta. A partir desse marco, a mineração pública passou a gerar moedas da rede principal, e não moedas de testnet.</p></div></div>
+    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">16/09 a 02/10/2026 · Concluído, segundo o projeto</div><strong>Revisões de segurança e pagamentos de recompensas</strong><p>O projeto publicou correções de falhas encontradas em revisão externa e pagamentos de recompensas a pesquisadores. Consulte a página de segurança para detalhes e transações.</p></div></div>
+    <div class="roaditem done"><div class="roadpin">✓</div><div><div class="roadmeta">22/09/2026 · Concluído</div><strong>Entrada no registro de moedas Komodo / GLEEC</strong><p>O projeto relata a inclusão no registro e um teste de atomic swap de 249,68 WAM contra Litecoin. É uma integração para troca descentralizada, não uma listagem em corretora centralizada.</p></div></div>
+    <div class="roaditem active"><div class="roadpin">●</div><div><div class="roadmeta">31/10/2026 · Situação atual</div><strong>Rede em operação e mineração pública</strong><p>A rede e a pool pública estão ativas. A pool publica hashrate, workers, blocos, dificuldade e divisão da recompensa. Acompanhe os dados ao vivo nos links oficiais acima.</p></div></div>
+    <div class="roaditem"><div class="roadpin">○</div><div><div class="roadmeta">Setembro/2027 a setembro/2031 · Regra programada</div><strong>Liberação gradual da reserva do fundador</strong><p>Segundo o projeto, os 2.000.000 WAM reservados no bloco gênese ficam bloqueados e seriam liberados em cinco parcelas anuais de 20%, de 2027 a 2031. É uma regra programada no protocolo, não uma previsão de preço.</p></div></div>
+    <div class="roaditem"><div class="roadpin">○</div><div><div class="roadmeta">Até o bloco 400.000 · Regra de consenso</div><strong>Encerramento da taxa de tesouraria de 5%</strong><p>A regra publicada destina 5% da recompensa à tesouraria até o bloco 400.000. Depois desse bloco, a recompensa de subsídio passa integralmente aos mineradores. A data depende da velocidade real de produção dos blocos.</p></div></div>
    </div></div>
-   <div class="section panel"><div class="panelhead"><h2>Critérios de conclusão</h2></div><div class="kv">
-    <div class="k">Dados operacionais</div><div class="v">Atualizados e com fonte identificada</div>
-    <div class="k">Dados financeiros</div><div class="v">Confirmados pela pool e/ou mercado verificável</div>
-    <div class="k">Histórico</div><div class="v">Persistente após reinicialização e publicação</div>
-    <div class="k">Alertas</div><div class="v">Testados sem alterar a mineração automaticamente</div>
-    <div class="k">Segurança</div><div class="v">Sem expor chaves privadas ou credenciais</div>
-   </div></div>
+   <div class="section panel"><div class="panelhead"><h2>Tokenomics — distribuição e mineração</h2><span class="chip">Parâmetros publicados</span></div><div class="kv">
+    <div class="k">Oferta máxima</div><div class="v">22.000.000 WAM</div>
+    <div class="k">Destinada à mineração pública</div><div class="v">19.250.000 WAM · 87,50%</div>
+    <div class="k">Reserva do fundador</div><div class="v">2.000.000 WAM · 9,09% · bloqueada</div>
+    <div class="k">Tesouraria operacional</div><div class="v">750.000 WAM · 3,41%</div>
+    <div class="k">Recompensa inicial por bloco</div><div class="v">50 WAM</div>
+    <div class="k">Divisão atual informada pela pool</div><div class="v">47,5 WAM para mineradores antes da taxa da pool</div>
+    <div class="k">Taxa da pool exibida atualmente</div><div class="v">1% + 5% de tesouraria de consenso</div>
+    <div class="k">Halving</div><div class="v">A cada 200.000 blocos</div>
+    <div class="k">Maturidade da recompensa</div><div class="v">100 blocos antes de gastar</div>
+   </div><p class="hint" style="margin-top:12px">A taxa de 5% da tesouraria é diferente da taxa operacional da pool. A taxa da pool é definida pelo operador. Consulte a configuração atual antes de estimar seu rendimento líquido.</p></div>
+   <div class="section panel"><div class="panelhead"><h2>Mercado, adoção e listagens</h2><span class="chip warning">Alto risco · projeto novo</span></div><div class="kv">
+    <div class="k">Mercado oficial / preço definido pelo projeto</div><div class="v">Não existe; o projeto declara que não define preço</div>
+    <div class="k">Negociação descentralizada</div><div class="v">Integração Komodo / GLEEC e teste de atomic swap relatados</div>
+    <div class="k">Outras plataformas consultadas</div><div class="v">Pedidos de requisitos enviados; sem acordo confirmado</div>
+    <div class="k">Listagem em exchange centralizada</div><div class="v">Não confirmada nas fontes oficiais consultadas</div>
+    <div class="k">Preço em reais</div><div class="v">Não confirmado para a WAM nativa</div>
+   </div><p class="hint" style="margin-top:12px">O próprio projeto alerta que a moeda pode não ter valor e que não há garantia de compradores. Não confundir WAM Coin nativa com tokens de mesmo ticker.</p></div>
+   <div class="section panel"><div class="panelhead"><h2>O que acompanhar daqui para frente</h2><span class="chip">Marcos futuros sem data garantida</span></div><div class="kv">
+    <div class="k">Novas versões do software</div><div class="v">Acompanhar releases oficiais do GitLab</div>
+    <div class="k">Crescimento da rede</div><div class="v">Hashrate, nós, peers, dificuldade e blocos</div>
+    <div class="k">Descentralização da mineração</div><div class="v">Novas pools e distribuição do hashrate</div>
+    <div class="k">Integrações de carteira</div><div class="v">Suporte efetivo em carteiras compatíveis</div>
+    <div class="k">Novas negociações</div><div class="v">Anúncios verificáveis de atomic swaps ou mercados</div>
+    <div class="k">Halvings</div><div class="v">Acompanhar alturas de 200.000 blocos</div>
+   </div><p class="hint" style="margin-top:12px">O projeto não publica uma promessa de valorização nem um calendário garantido de listagens. Os próximos marcos comerciais dependem de terceiros e devem aparecer aqui somente quando houver confirmação oficial.</p></div>
   </section>
   <section id="view-settings" class="hidden"><div class="pagehead"><div><h1>Configurações</h1><p>Parâmetros que o painel consegue ler. A interface não altera o serviço de mineração.</p></div></div><div class="panel"><div class="kv" id="settings-info"></div><p class="hint">Para segurança, o painel não expõe credenciais RPC, cookie do nó ou chaves privadas.</p></div></section>
   <div class="footer">WAM Coin · Painel de monitoramento · Valores ausentes não são convertidos em zero · Atualização automática a cada 10 segundos</div>
