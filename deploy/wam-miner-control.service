@@ -1,21 +1,24 @@
 [Unit]
-Description=WAM Miner dashboard control bridge
-After=network-online.target wam-miner.service
+Description=WAM Miner dashboard control bridge (Node.js)
+After=network-online.target
 Wants=network-online.target
+
 [Service]
 Type=simple
 User=root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=WAM_MONITOR_BIND=172.18.0.1
 Environment=WAM_MONITOR_PORT=9558
 Environment=WAM_MINER_SERVICE=wam-miner.service
 Environment=WAM_WALLET=wam1qch64hevyaz5lgwjfm9vv487hemev4g2qssfksc
 Environment=WAM_POOL=stratum+tcp://pool.wamcoin.org:3334
-ExecStart=/usr/bin/node /opt/wam-miner-control.js
+ExecStart=/usr/bin/env node /opt/wam-miner-control.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
+
 [Install]
 WantedBy=multi-user.target
