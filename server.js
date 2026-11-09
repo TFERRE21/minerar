@@ -59,7 +59,7 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
  <div class="topbar"><button class="toggle" id="theme">☀ Claro</button><span class="topmuted">Atualização automática</span><strong class="topvalue" id="refresh-state">10s</strong><span class="topmuted">Última atualização</span><strong class="topvalue" id="updated">—</strong><button class="btn" id="refresh">↻</button></div>
  <div class="content">
   <section id="view-overview">
-   <div class="pagehead"><div><h1>Visão geral da mineração</h1><p>Indicadores conectados ao minerador, pool e nó WAM. Campos sem fonte são mostrados como indisponíveis.</p></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="chip" id="connection">Conectando fontes…</span><button class="btn" id="miner-pause" type="button" onclick="window.wamMinerAction('stop')" style="border-color:#d97706;color:#b45309;font-weight:700;cursor:pointer;pointer-events:auto">⏸ Pausar mineração</button><button class="btn" id="miner-start" type="button" onclick="window.wamMinerAction('start')" style="border-color:#0ca765;color:#087c4a;font-weight:700;cursor:pointer;pointer-events:auto">▶ Iniciar mineração</button></div></div><div class="hint" id="miner-control-message" role="status" aria-live="polite" style="margin:-8px 0 12px"></div>
+   <div class="pagehead"><div><h1>Visão geral da mineração</h1><p>Indicadores conectados ao minerador, pool e nó WAM. Campos sem fonte são mostrados como indisponíveis.</p></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="chip" id="connection">Conectando fontes…</span><form method="POST" action="/api/miner-control" style="display:contents"><input type="hidden" name="action" value="stop"><button class="btn" id="miner-pause" type="submit" style="border-color:#d97706;color:#b45309;font-weight:700;cursor:pointer">⏸ Pausar mineração</button></form><form method="POST" action="/api/miner-control" style="display:contents"><input type="hidden" name="action" value="start"><button class="btn" id="miner-start" type="submit" style="border-color:#0ca765;color:#087c4a;font-weight:700;cursor:pointer">▶ Iniciar mineração</button></form></div></div><div class="hint" id="miner-control-message" role="status" aria-live="polite" style="margin:-8px 0 12px"></div>
    <div class="cards">
     <article class="card"><div class="metrichead"><span class="ico">◉</span>Velocidade de mineração</div><div class="metric" id="hashrate">—</div><div class="hint" id="hashrate-hint">Aguardando estatística do minerador</div></article>
     <article class="card"><div class="metrichead"><span class="ico blue">▱</span>Threads ativas</div><div class="metric" id="threads">—</div><div class="hint" id="cpu-hint">Uso de CPU indisponível</div></article>
@@ -322,20 +322,26 @@ const server = http.createServer(async (req, res) => {
   if (path === "/health" || path === "/healthz") return send(res, 200, { status: "ok", app: "wam-dashboard" });
   if (path === "/api/mining") return send(res, 200, { ...(await getMonitor()), walletAddress: WAM_WALLET });
   if (path === "/api/miner-control" && req.method === "POST") {
-    const origin = req.headers.origin;
-    if (origin && origin !== "https://" + req.headers.host && origin !== "http://" + req.headers.host) return send(res, 403, { success: false, error: "Origem não autorizada" });
     let body = "";
     req.on("data", chunk => { body += chunk; if (body.length > 2048) req.destroy(); });
     req.on("end", async () => {
+      let action = "";
       try {
-        const input = JSON.parse(body || "{}");
-        if (!["start", "stop"].includes(input.action)) return send(res, 400, { success: false, error: "Ação inválida" });
+        const type = String(req.headers["content-type"] || "");
+        if (type.includes("application/x-www-form-urlencoded")) action = new URLSearchParams(body).get("action") || "";
+        else action = JSON.parse(body || "{}").action || "";
+        if (!["start", "stop"].includes(action)) throw new Error("Ação inválida.");
         const controlUrl = process.env.WAM_CONTROL_URL || "http://172.18.0.1:9558/control";
-        const response = await fetch(controlUrl, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ action: input.action }), signal: AbortSignal.timeout(18000) });
+        const response = await fetch(controlUrl, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ action }), signal: AbortSignal.timeout(18000) });
         const result = await response.json().catch(() => ({}));
-        return send(res, response.ok ? 200 : 502, result);
+        const ok = response.ok && result.success === true;
+        const title = ok ? (action === "stop" ? "Mineração pausada" : "Mineração iniciada") : "Não foi possível executar o comando";
+        const detail = result.message || result.error || ("Resposta HTTP " + response.status);
+        res.writeHead(ok ? 200 : 502, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        return res.end("<!doctype html><html lang='pt-BR'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Controle WAM</title><body style='font:16px system-ui;max-width:650px;margin:12vh auto;padding:24px;color:#172238'><h2>" + title + "</h2><p>" + String(detail).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])) + "</p><p><a href='/'>Voltar ao painel</a></p></body></html>");
       } catch (error) {
-        return send(res, 503, { success: false, error: "Ponte de controle indisponível: " + error.message + ". O agente wam-host-monitor no VPS precisa ser atualizado." });
+        res.writeHead(503, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        return res.end("<!doctype html><html lang='pt-BR'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Controle WAM</title><body style='font:16px system-ui;max-width:650px;margin:12vh auto;padding:24px;color:#172238'><h2>Falha no controle da mineração</h2><p>" + String(error.message).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])) + "</p><p><a href='/'>Voltar ao painel</a></p></body></html>");
       }
     });
     return;
