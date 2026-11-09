@@ -184,8 +184,11 @@ async function controlMiner(action){
     await refresh();
   }catch(error){msg.textContent="Falha no controle: "+error.message; if(pause)pause.disabled=false;if(start)start.disabled=false;}
 }
-$("miner-pause").addEventListener("click",()=>{if(confirm("Deseja realmente pausar a mineração WAM?"))controlMiner("stop")});
-$("miner-start").addEventListener("click",()=>{if(confirm("Deseja iniciar novamente a mineração WAM?"))controlMiner("start")});
+// Controles diretos: sem caixa confirm() que pode ser bloqueada pelo navegador.
+const pauseButton=$("miner-pause");
+const startButton=$("miner-start");
+if(pauseButton){pauseButton.type="button";pauseButton.onclick=()=>controlMiner("stop");}
+if(startButton){startButton.type="button";startButton.onclick=()=>controlMiner("start");}
 $("refresh").addEventListener("click",refresh);$("refresh-state").textContent=(REFRESH_MS/1000)+"s";refresh();setInterval(refresh,REFRESH_MS);
 </script></body></html>`.replace("__REFRESH_MS__", String(REFRESH_MS)).replace("WAM_WALLET_PLACEHOLDER", JSON.stringify(WAM_WALLET));
 
