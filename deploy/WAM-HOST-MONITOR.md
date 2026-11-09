@@ -36,3 +36,29 @@ O JSON de status deve conter serviceActive, hashrate, validShares, rejectedShare
 - A altura e a dificuldade vêm da última mensagem de job recebida pelo minerador, não necessariamente da altura sincronizada do nó local.
 - O painel não inventa histórico. Para ter gráfico histórico real, é necessário persistir amostras ao longo do tempo; isso será exibido quando houver fonte histórica.
 - Saldo pendente e total pago são fornecidos pela API da pool e não equivalem ao saldo confirmado on-chain da carteira.
+
+
+## 4. Controle de pausar/iniciar pelo painel
+
+O painel usa uma ponte de controle separada na porta privada 9558. Ela não substitui nem interrompe a ponte de leitura existente na porta 9557. O serviço controlado é fixo em `wam-miner.service`; a API não aceita nomes de outros serviços.
+
+No host Linux, confirme que Node.js está instalado (`node --version`). Em seguida, instale o agente de controle e sua unidade systemd:
+
+    curl -fsSL https://raw.githubusercontent.com/TFERRE21/minerar/main/deploy/wam-host-monitor.js -o /opt/wam-miner-control.js
+    curl -fsSL https://raw.githubusercontent.com/TFERRE21/minerar/main/deploy/wam-miner-control.service -o /etc/systemd/system/wam-miner-control.service
+    chmod 755 /opt/wam-miner-control.js
+    systemctl daemon-reload
+    systemctl enable --now wam-miner-control.service
+
+Confirme a ponte:
+
+    curl -fsS http://172.18.0.1:9558/health
+
+Depois do deploy do painel, os botões **Pausar mineração** e **Iniciar mineração** enviam comandos para essa ponte e verificam o estado do serviço. A porta 9558 deve permanecer acessível somente pela rede privada do container; não publique essa porta na internet.
+
+Para atualizar o agente após futuras alterações:
+
+    curl -fsSL https://raw.githubusercontent.com/TFERRE21/minerar/main/deploy/wam-host-monitor.js -o /opt/wam-miner-control.js
+    systemctl restart wam-miner-control.service
+
+Reiniciar `wam-miner-control.service` apenas atualiza a ponte de controle; não reinicia o minerador WAM.
