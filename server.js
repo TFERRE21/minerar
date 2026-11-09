@@ -150,6 +150,12 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
 </main></div>
 <script>
 const REFRESH_MS=__REFRESH_MS__;
+const minerNotice = new URLSearchParams(location.search).get("miner");
+if (minerNotice === "paused" || minerNotice === "running") {
+  const notice = document.getElementById("miner-control-message");
+  if (notice) notice.textContent = minerNotice === "paused" ? "Mineração pausada. Estado atualizado pelo VPS." : "Comando de início confirmado pelo VPS. Atualizando métricas…";
+  history.replaceState({}, "", location.pathname);
+}
 const $=id=>document.getElementById(id);
 const number=(v,d=2)=>v===null||v===undefined||v===""||!Number.isFinite(Number(v))?"—":Number(v).toLocaleString("pt-BR",{maximumFractionDigits:d});
 const val=(v,unit="")=>v===null||v===undefined||v===""?"Indisponível":String(v)+(unit?" "+unit:"");
@@ -325,23 +331,28 @@ const server = http.createServer(async (req, res) => {
     let body = "";
     req.on("data", chunk => { body += chunk; if (body.length > 2048) req.destroy(); });
     req.on("end", async () => {
-      let action = "";
       try {
         const type = String(req.headers["content-type"] || "");
-        if (type.includes("application/x-www-form-urlencoded")) action = new URLSearchParams(body).get("action") || "";
-        else action = JSON.parse(body || "{}").action || "";
+        const action = type.includes("application/x-www-form-urlencoded")
+          ? (new URLSearchParams(body).get("action") || "")
+          : (JSON.parse(body || "{}").action || "");
         if (!["start", "stop"].includes(action)) throw new Error("Ação inválida.");
         const controlUrl = process.env.WAM_CONTROL_URL || "http://172.18.0.1:9558/control";
-        const response = await fetch(controlUrl, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ action }), signal: AbortSignal.timeout(18000) });
+        const response = await fetch(controlUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ action }),
+          signal: AbortSignal.timeout(18000)
+        });
         const result = await response.json().catch(() => ({}));
         const ok = response.ok && result.success === true;
-        const title = ok ? (action === "stop" ? "Mineração pausada" : "Mineração iniciada") : "Não foi possível executar o comando";
-        const detail = result.message || result.error || ("Resposta HTTP " + response.status);
-        res.writeHead(ok ? 200 : 502, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        return res.end("<!doctype html><html lang='pt-BR'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Controle WAM</title><body style='font:16px system-ui;max-width:650px;margin:12vh auto;padding:24px;color:#172238'><h2>" + title + "</h2><p>" + String(detail).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])) + "</p><p><a href='/'>Voltar ao painel</a></p></body></html>");
+        if (!ok) throw new Error(result.message || result.error || ("Falha no controle (HTTP " + response.status + ")"));
+        res.writeHead(303, { location: "/?miner=" + (action === "stop" ? "paused" : "running"), "cache-control": "no-store" });
+        return res.end();
       } catch (error) {
+        const detail = String(error.message || error).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
         res.writeHead(503, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        return res.end("<!doctype html><html lang='pt-BR'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Controle WAM</title><body style='font:16px system-ui;max-width:650px;margin:12vh auto;padding:24px;color:#172238'><h2>Falha no controle da mineração</h2><p>" + String(error.message).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])) + "</p><p><a href='/'>Voltar ao painel</a></p></body></html>");
+        return res.end("<!doctype html><html lang='pt-BR'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Controle WAM</title><body style='font:16px system-ui;max-width:650px;margin:12vh auto;padding:24px;color:#172238'><h2>Falha no controle da mineração</h2><p>" + detail + "</p><p><a href='/'>Voltar ao painel</a></p></body></html>");
       }
     });
     return;
