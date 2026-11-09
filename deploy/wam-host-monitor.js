@@ -71,15 +71,40 @@ function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
   res.end(JSON.stringify(body));
 }
+function controlMiner(action) {
+  if (action !== "start" && action !== "stop") throw new Error("Ação inválida");
+  const output = execFileSync("systemctl", [action, SERVICE], { encoding: "utf8", timeout: 15000, stdio: ["ignore", "pipe", "pipe"], maxBuffer: 1024 * 1024 }).trim();
+  const state = run("systemctl", ["is-active", SERVICE]);
+  const props = run("systemctl", ["show", SERVICE, "-p", "MainPID", "--no-pager"]);
+  const pid = Number(prop(props, "MainPID") || 0);
+  const active = state === "active" && pid > 0;
+  if (action === "start" && !active) throw new Error("O systemd recebeu o comando, mas o minerador não ficou ativo. " + (output || state || "Estado desconhecido"));
+  if (action === "stop" && active) throw new Error("O minerador continua ativo após o comando de pausa.");
+  return { success: true, action, service: SERVICE, serviceActive: active, pid: pid || null, message: action === "start" ? "Mineração iniciada e processo confirmado." : "Mineração pausada e processo encerrado.", updatedAt: new Date().toISOString() };
+}
 const server = http.createServer((req, res) => {
   const path = new URL(req.url, "http://localhost").pathname;
-  if (req.method !== "GET") return json(res, 405, { error: "Método não permitido" });
-  if (path === "/health") return json(res, 200, { status: "ok", service: SERVICE });
-  if (path === "/status") return json(res, 200, getStatus());
-  if (path === "/logs") {
+  if (path === "/health" && req.method === "GET") return json(res, 200, { status: "ok", service: SERVICE });
+  if (path === "/status" && req.method === "GET") return json(res, 200, getStatus());
+  if (path === "/logs" && req.method === "GET") {
     const logs = run("journalctl", ["-u", SERVICE, "-n", "100", "--no-pager", "-o", "short-iso"]);
     return json(res, 200, { available: Boolean(logs), lines: logs ? logs.split("\n").filter(Boolean).slice(-100) : [] });
   }
+  if (path === "/control" && req.method === "POST") {
+    let body = "";
+    req.on("data", chunk => { body += chunk; if (body.length > 2048) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const input = JSON.parse(body || "{}");
+        const result = controlMiner(input.action);
+        return json(res, 200, result);
+      } catch (error) {
+        return json(res, 500, { success: false, error: error.message || "Falha ao controlar minerador" });
+      }
+    });
+    return;
+  }
+  if (path === "/control") return json(res, 405, { error: "Use POST" });
   return json(res, 404, { error: "Não encontrado" });
 });
 server.listen(PORT, HOST, () => console.log("WAM host monitor ouvindo em " + HOST + ":" + PORT));
