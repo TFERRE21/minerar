@@ -326,7 +326,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const input = JSON.parse(body || "{}");
         if (!["start", "stop"].includes(input.action)) return send(res, 400, { success: false, error: "Ação inválida" });
-        const controlUrl = WAM_STATUS_URL.endsWith("/status") ? WAM_STATUS_URL.slice(0, -7) + "/control" : WAM_STATUS_URL + "/control";
+        const controlUrl = process.env.WAM_CONTROL_URL || "http://172.18.0.1:9558/control";
         const response = await fetch(controlUrl, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ action: input.action }), signal: AbortSignal.timeout(18000) });
         const result = await response.json().catch(() => ({}));
         return send(res, response.ok ? 200 : 502, result);
