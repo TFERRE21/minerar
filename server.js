@@ -59,7 +59,7 @@ body.dark{color-scheme:dark;--bg:#0e1726;--surface:#152236;--surface2:#1d2b40;--
  <div class="topbar"><button class="toggle" id="theme">☀ Claro</button><span class="topmuted">Atualização automática</span><strong class="topvalue" id="refresh-state">10s</strong><span class="topmuted">Última atualização</span><strong class="topvalue" id="updated">—</strong><button class="btn" id="refresh">↻</button></div>
  <div class="content">
   <section id="view-overview">
-   <div class="pagehead"><div><h1>Visão geral da mineração</h1><p>Indicadores conectados ao minerador, pool e nó WAM. Campos sem fonte são mostrados como indisponíveis.</p></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="chip" id="connection">Conectando fontes…</span><button class="btn" id="miner-pause" type="button" style="border-color:#d97706;color:#b45309;font-weight:700">⏸ Pausar mineração</button><button class="btn" id="miner-start" type="button" style="border-color:#0ca765;color:#087c4a;font-weight:700">▶ Iniciar mineração</button></div></div><div class="hint" id="miner-control-message" role="status" aria-live="polite" style="margin:-8px 0 12px"></div>
+   <div class="pagehead"><div><h1>Visão geral da mineração</h1><p>Indicadores conectados ao minerador, pool e nó WAM. Campos sem fonte são mostrados como indisponíveis.</p></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="chip" id="connection">Conectando fontes…</span><button class="btn" id="miner-pause" type="button" onclick="window.wamMinerAction('stop')" style="border-color:#d97706;color:#b45309;font-weight:700;cursor:pointer;pointer-events:auto">⏸ Pausar mineração</button><button class="btn" id="miner-start" type="button" onclick="window.wamMinerAction('start')" style="border-color:#0ca765;color:#087c4a;font-weight:700;cursor:pointer;pointer-events:auto">▶ Iniciar mineração</button></div></div><div class="hint" id="miner-control-message" role="status" aria-live="polite" style="margin:-8px 0 12px"></div>
    <div class="cards">
     <article class="card"><div class="metrichead"><span class="ico">◉</span>Velocidade de mineração</div><div class="metric" id="hashrate">—</div><div class="hint" id="hashrate-hint">Aguardando estatística do minerador</div></article>
     <article class="card"><div class="metrichead"><span class="ico blue">▱</span>Threads ativas</div><div class="metric" id="threads">—</div><div class="hint" id="cpu-hint">Uso de CPU indisponível</div></article>
@@ -184,11 +184,12 @@ async function controlMiner(action){
     await refresh();
   }catch(error){msg.textContent="Falha no controle: "+error.message; if(pause)pause.disabled=false;if(start)start.disabled=false;}
 }
-// Controles diretos: sem caixa confirm() que pode ser bloqueada pelo navegador.
-const pauseButton=$("miner-pause");
-const startButton=$("miner-start");
-if(pauseButton){pauseButton.type="button";pauseButton.onclick=()=>controlMiner("stop");}
-if(startButton){startButton.type="button";startButton.onclick=()=>controlMiner("start");}
+// Handler global chamado diretamente pelo onclick dos dois botões.
+window.wamMinerAction = function(action) {
+  const msg = $("miner-control-message");
+  if (msg) msg.textContent = action === "stop" ? "Clique recebido. Solicitando pausa da mineração…" : "Clique recebido. Solicitando início da mineração…";
+  controlMiner(action);
+};
 $("refresh").addEventListener("click",refresh);$("refresh-state").textContent=(REFRESH_MS/1000)+"s";refresh();setInterval(refresh,REFRESH_MS);
 </script></body></html>`.replace("__REFRESH_MS__", String(REFRESH_MS)).replace("WAM_WALLET_PLACEHOLDER", JSON.stringify(WAM_WALLET));
 
